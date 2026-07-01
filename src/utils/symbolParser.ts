@@ -37,10 +37,9 @@ export function normalizeSymbol(symbol: string): string {
   }
 
   if (isAStock(s)) {
-    // 深交所：000/001/002/003/300/301 开头 → sz
+    // 深交所：000/001/002/003/300/301 股票，以及 15/16/18 开头的基金/ETF → sz
     // 上交所：600/601/603/605/688 开头 → sh
-    const prefix = s.charAt(0);
-    if (prefix === '0' || prefix === '3') {
+    if (/^(0|3|15|16|18)/.test(s)) {
       return `sz${s}`;
     }
     return `sh${s}`;
