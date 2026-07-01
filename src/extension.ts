@@ -23,19 +23,15 @@ export function activate(ctx: vscode.ExtensionContext): void {
 
     vscode.commands.registerCommand('estock.addStock', async () => {
       const input = await vscode.window.showInputBox({
-        prompt: '输入股票代码（A股6位，港股5位）',
-        placeHolder: '如 600519 或 00700',
+        prompt: '输入股票代码或中文名称',
+        placeHolder: '如 600519、00700、中国平安、腾讯控股',
         validateInput: (value: string) => {
           const v = value.trim();
-          if (!v) return null;
-          if (!/^\d{5,6}$/.test(v)) {
-            return '请输入5位（港股）或6位（A股）数字代码';
-          }
-          return null;
+          return v ? null : '请输入股票代码或中文名称';
         },
       });
       if (input) {
-        await stockService?.addStock(input.trim());
+        await stockService?.addStockByInput(input.trim());
       }
     }),
 

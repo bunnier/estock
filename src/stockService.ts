@@ -11,10 +11,15 @@ import { DataProvider, Quote } from './providers/baseProvider';
 import { SinaProvider } from './providers/sinaProvider';
 import { TencentProvider } from './providers/tencentProvider';
 import { SmartProvider } from './providers/smartProvider';
+import { SinaStockSearchProvider, StockSearchResult } from './providers/stockSearchProvider';
 import { StatusBarManager } from './statusBarManager';
 import { normalizeSymbols, stripPrefix, getMarketTag } from './utils/symbolParser';
 import { HolidayCalendar } from './utils/holidayCalendar';
 import { isMarketOpenForSymbol } from './utils/marketTime';
+
+interface StockSearchProvider {
+  search(keyword: string): Promise<StockSearchResult[]>;
+}
 
 export class StockService {
   private provider!: DataProvider;
@@ -23,6 +28,11 @@ export class StockService {
   private ctx!: vscode.ExtensionContext;
   private isRefreshing = false;
   private holidayCalendar = new HolidayCalendar();
+  private searchProvider: StockSearchProvider;
+
+  constructor(searchProvider: StockSearchProvider = new SinaStockSearchProvider()) {
+    this.searchProvider = searchProvider;
+  }
 
   /** 股票池（所有关注的股票，已标准化） */
   private get watchList(): string[] {
@@ -193,6 +203,45 @@ export class StockService {
     await vscode.workspace.getConfiguration('estock')
       .update('watchList', newList, vscode.ConfigurationTarget.Global);
     vscode.window.showInformationMessage(`已添加 ${stripPrefix(normalized)} 到股票池`);
+  }
+
+  /** 根据代码或中文关键词添加股票 */
+  async addStockByInput(input: string): Promise<void> {
+    const keyword = input.trim();
+    if (!keyword) return;
+
+    if (/^\d{5,6}$/.test(keyword) || /^(sh|sz|hk)\d+$/i.test(keyword)) {
+      await this.addStock(keyword);
+      return;
+    }
+
+    let results: StockSearchResult[];
+    try {
+      results = await this.searchProvider.search(keyword);
+    } catch (e) {
+      console.warn('[estock] stock search failed', e);
+      vscode.window.showErrorMessage(`搜索股票失败，请稍后重试: ${keyword}`);
+      return;
+    }
+
+    if (results.length === 0) {
+      vscode.window.showWarningMessage(`未找到匹配股票: ${keyword}`);
+      return;
+    }
+
+    const pick = await vscode.window.showQuickPick(
+      results.map(result => ({
+        label: `${result.name}(${result.market})`,
+        description: result.code,
+        detail: result.market === 'A' ? 'A股' : '港股',
+        symbol: result.symbol,
+        code: result.code,
+      })),
+      { placeHolder: `选择要添加的股票：${keyword}` }
+    );
+
+    if (!pick) return;
+    await this.addStock(pick.code);
   }
 
   /** 从股票池移除 */

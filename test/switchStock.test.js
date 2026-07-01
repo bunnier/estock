@@ -67,3 +67,52 @@ test('switchStock without a command argument asks for the display position first
     vscode.window.showQuickPick = originalShowQuickPick;
   }
 });
+
+test('addStockByInput searches Chinese keywords and adds the selected stock', async () => {
+  const config = createConfig({
+    watchList: [],
+    displayList: [],
+    maxDisplay: 3,
+  });
+
+  const originalGetConfiguration = vscode.workspace.getConfiguration;
+  const originalShowQuickPick = vscode.window.showQuickPick;
+  const originalShowInformationMessage = vscode.window.showInformationMessage;
+
+  const messages = [];
+  vscode.workspace.getConfiguration = () => config;
+  vscode.window.showQuickPick = async (items) => {
+    const resolvedItems = Array.isArray(items) ? items : await items;
+    return resolvedItems.find(item => item.symbol === 'sh601318');
+  };
+  vscode.window.showInformationMessage = (message) => {
+    messages.push(message);
+  };
+
+  try {
+    const service = new StockService({
+      search: async () => [
+        { symbol: 'sh601318', code: '601318', name: '中国平安', market: 'A' },
+      ],
+    });
+    service.provider = {
+      name: 'test',
+      fetchQuotes: async () => [{
+        symbol: 'sh601318',
+        name: '中国平安',
+        price: 50,
+        change: 1,
+        changePercent: 2,
+      }],
+    };
+
+    await service.addStockByInput('平安');
+
+    assert.deepEqual(config.values.watchList, ['601318']);
+    assert.deepEqual(messages, ['已添加 601318 到股票池']);
+  } finally {
+    vscode.workspace.getConfiguration = originalGetConfiguration;
+    vscode.window.showQuickPick = originalShowQuickPick;
+    vscode.window.showInformationMessage = originalShowInformationMessage;
+  }
+});
