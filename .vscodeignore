@@ -13,3 +13,4 @@ test/**
 **/*.spec.js
 package-lock.json
 icon-preview.png
+.workbuddy/**
