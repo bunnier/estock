@@ -73,6 +73,14 @@ export function getMarketTag(symbol: string): string {
   return '';
 }
 
+/** 返回金额货币符号：A股 → '¥'，港股 → '$' */
+export function getCurrencySymbol(symbol: string): string {
+  const s = symbol.toLowerCase();
+  if (s.startsWith('hk')) return '$';
+  if (s.startsWith('sh') || s.startsWith('sz')) return '¥';
+  return '';
+}
+
 /** 带市场标识的显示名称，如 "平安银行(A)" / "腾讯控股(H)" */
 export function nameWithMarket(name: string, symbol: string): string {
   const tag = getMarketTag(symbol);

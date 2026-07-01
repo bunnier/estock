@@ -83,8 +83,8 @@
         },
         "estock.displayFormat": {
           "type": "string",
-          "default": "${name} ${changePercent} (${price})",
-          "description": "状态栏显示格式。可用变量：${name}, ${price}, ${change}, ${changePercent}, ${volume}",
+          "default": "${name} ${changePercent} (${currency}${price})",
+          "description": "状态栏显示格式。可用变量：${name}, ${price}, ${currency}, ${change}, ${changePercent}, ${volume}",
           "order": 5
         },
         "estock.statusBarAlignment": {

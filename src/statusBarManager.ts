@@ -6,7 +6,7 @@
 
 import * as vscode from 'vscode';
 import { Quote } from './providers/baseProvider';
-import { stripPrefix, getMarketTag } from './utils/symbolParser';
+import { stripPrefix, getMarketTag, getCurrencySymbol } from './utils/symbolParser';
 
 export class StatusBarManager {
   private items: vscode.StatusBarItem[] = [];
@@ -113,7 +113,7 @@ export class StatusBarManager {
   /** 格式化状态栏文字 */
   private formatText(quote: Quote, isClosed: boolean): string {
     const cfg = vscode.workspace.getConfiguration('estock');
-    const format = cfg.get<string>('displayFormat', '${name} ${changePercent} ${price}');
+    const format = cfg.get<string>('displayFormat', '${name} ${changePercent} (${currency}${price})');
 
     const changeStr = quote.changePercent >= 0
       ? `+${quote.changePercent.toFixed(2)}%`
@@ -126,6 +126,7 @@ export class StatusBarManager {
       .replace(/\$\{price\}/g, priceStr)
       .replace(/\$\{change\}/g, quote.change >= 0 ? `+${quote.change.toFixed(2)}` : `${quote.change.toFixed(2)}`)
       .replace(/\$\{changePercent\}/g, changeStr)
+      .replace(/\$\{currency\}/g, getCurrencySymbol(quote.symbol))
       .replace(/\$\{volume\}/g, quote.volume ? String(quote.volume) : '---');
 
     if (isClosed) {

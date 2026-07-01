@@ -65,3 +65,55 @@ test('closed market display uses the configured closed color even when a quote i
     vscode.window.createStatusBarItem = originalCreateStatusBarItem;
   }
 });
+
+test('display format supports currency placeholder for China and Hong Kong stocks', () => {
+  const config = createConfig({
+    displayFormat: '${name} ${changePercent} (${currency}${price})',
+    statusBarAlignment: 'center',
+    colorUp: '#ff0000',
+    colorDown: '#00ff00',
+    colorFlat: '#cccccc',
+    colorClosed: '#777777',
+  });
+
+  const originalGetConfiguration = vscode.workspace.getConfiguration;
+  const originalCreateStatusBarItem = vscode.window.createStatusBarItem;
+  const items = [];
+
+  vscode.workspace.getConfiguration = () => config;
+  vscode.window.createStatusBarItem = () => {
+    const item = {
+      show() {},
+      dispose() {},
+    };
+    items.push(item);
+    return item;
+  };
+
+  try {
+    const manager = new StatusBarManager();
+    manager.reload(['sh601318', 'hk00700']);
+    manager.updateQuotes([
+      {
+        symbol: 'sh601318',
+        name: '中国平安',
+        price: 50,
+        change: 1,
+        changePercent: 2,
+      },
+      {
+        symbol: 'hk00700',
+        name: '腾讯控股',
+        price: 421,
+        change: -2,
+        changePercent: -0.47,
+      },
+    ]);
+
+    assert.equal(items[0].text, '中国平安(A) +2.00% (¥50.00)');
+    assert.equal(items[1].text, '腾讯控股(H) -0.47% ($421.00)');
+  } finally {
+    vscode.workspace.getConfiguration = originalGetConfiguration;
+    vscode.window.createStatusBarItem = originalCreateStatusBarItem;
+  }
+});

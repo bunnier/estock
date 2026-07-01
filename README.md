@@ -78,7 +78,7 @@ cursor --install-extension estock.estock-watcher
 | `estock.maxDisplay` | `3` | 展示列表为空时，最多从股票池中展示几只股票。 |
 | `estock.refreshInterval` | `10` | 自动刷新间隔，单位为秒，最小值为 5。 |
 | `estock.dataSource` | `"smart"` | 行情来源，建议保持默认值。 |
-| `estock.displayFormat` | `"${name} ${changePercent} (${price})"` | 状态栏展示格式。 |
+| `estock.displayFormat` | `"${name} ${changePercent} (${currency}${price})"` | 状态栏展示格式。 |
 | `estock.statusBarAlignment` | `"center"` | 状态栏位置，可选 `left`、`center`、`right`。 |
 | `estock.colorUp` | `"#FAAFA0"` | 上涨颜色。 |
 | `estock.colorDown` | `"#4EC9B0"` | 下跌颜色。 |
@@ -94,6 +94,7 @@ cursor --install-extension estock.estock-watcher
 |------|------|------|
 | `${name}` | 股票名称，包含市场标识。 | `腾讯控股(H)` |
 | `${price}` | 当前价。 | `421.00` |
+| `${currency}` | 金额货币符号，A股为 `¥`，港股为 `$`。 | `$` |
 | `${change}` | 涨跌额。 | `+1.20` |
 | `${changePercent}` | 涨跌幅。 | `+0.29%` |
 | `${volume}` | 成交量。 | `7849461` |
