@@ -1,7 +1,7 @@
 {
   "name": "estock-watcher",
   "displayName": "码盯",
-  "description": "在状态栏查看关注的A股/港股行情",
+  "description": "编码的同时关注持仓股票行情。",
   "version": "0.8.0",
   "icon": "icon.png",
   "publisher": "estock",
