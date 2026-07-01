@@ -1,0 +1,15 @@
+# 打包时排除源码和开发文件，只保留编译后的 out/ 和必要文件
+src/**
+*.ts
+*.ts.map
+tsconfig.json
+.gitignore
+.vscode/**
+.vscode-test/**
+test/**
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+package-lock.json
+icon-preview.png

@@ -1,0 +1,69 @@
+const assert = require('node:assert/strict');
+const test = require('node:test');
+const Module = require('node:module');
+
+const vscode = require('./vscode');
+const originalLoad = Module._load;
+Module._load = function patchedLoad(request, parent, isMain) {
+  if (request === 'vscode') {
+    return vscode;
+  }
+  return originalLoad.call(this, request, parent, isMain);
+};
+
+const { StockService } = require('../out/stockService');
+
+function createConfig(initial) {
+  const values = structuredClone(initial);
+  const updates = [];
+
+  return {
+    values,
+    updates,
+    get(key, fallback) {
+      return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : fallback;
+    },
+    async update(key, value) {
+      values[key] = value;
+      updates.push({ key, value });
+    },
+  };
+}
+
+test('switchStock without a command argument asks for the display position first', async () => {
+  const config = createConfig({
+    watchList: ['601318', '00700'],
+    displayList: ['601318'],
+    maxDisplay: 3,
+  });
+
+  const originalGetConfiguration = vscode.workspace.getConfiguration;
+  const originalShowQuickPick = vscode.window.showQuickPick;
+
+  let quickPickCalls = 0;
+  vscode.workspace.getConfiguration = () => config;
+  vscode.window.showQuickPick = async (items) => {
+    quickPickCalls += 1;
+    const resolvedItems = Array.isArray(items) ? items : await items;
+    if (quickPickCalls === 1) {
+      return resolvedItems[0];
+    }
+    return resolvedItems.find(item => item.symbol === 'hk00700');
+  };
+
+  try {
+    const service = new StockService();
+    service.provider = { name: 'test', fetchQuotes: async () => [] };
+    service.statusBar = {
+      getLastQuote: () => undefined,
+    };
+
+    await service.switchStock();
+
+    assert.deepEqual(config.values.displayList, ['00700']);
+    assert.equal(quickPickCalls, 2);
+  } finally {
+    vscode.workspace.getConfiguration = originalGetConfiguration;
+    vscode.window.showQuickPick = originalShowQuickPick;
+  }
+});

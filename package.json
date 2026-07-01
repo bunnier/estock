@@ -1,0 +1,163 @@
+{
+  "name": "estock-watcher",
+  "displayName": "码盯",
+  "description": "在状态栏查看关注的A股/港股行情",
+  "version": "0.7.6",
+  "icon": "icon.png",
+  "publisher": "estock",
+  "author": {
+    "name": "bunnier",
+    "email": "bunnier1987@qq.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bunnier/estock.git"
+  },
+  "homepage": "https://github.com/bunnier/estock",
+  "bugs": {
+    "url": "https://github.com/bunnier/estock/issues"
+  },
+  "keywords": [
+    "estock",
+    "码盯",
+    "股票",
+    "行情",
+    "股价",
+    "盯盘",
+    "看盘",
+    "摸鱼",
+    "A股",
+    "港股",
+    "市场"
+  ],
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "main": "./out/extension.js",
+  "categories": ["Other", "Visualization"],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:estock.refresh",
+    "onCommand:estock.addStock",
+    "onCommand:estock.removeStock",
+    "onCommand:estock.showDetail",
+    "onCommand:estock.switchStock"
+  ],
+  "contributes": {
+    "configuration": {
+      "title": "码盯",
+      "properties": {
+        "estock.watchList": {
+          "type": "array",
+          "default": ["601318", "00700", "002027", "601899"],
+          "description": "股票池：所有关注的股票代码（A股6位，港股5位）",
+          "items": { "type": "string" },
+          "order": 0
+        },
+        "estock.displayList": {
+          "type": "array",
+          "default": ["00700", "601318", "002027"],
+          "description": "状态栏展示列表（从股票池中选择，为空时默认取股票池前 maxDisplay 个）",
+          "items": { "type": "string" },
+          "order": 1
+        },
+        "estock.maxDisplay": {
+          "type": "number",
+          "default": 3,
+          "description": "最多显示股票数量",
+          "order": 2
+        },
+        "estock.refreshInterval": {
+          "type": "number",
+          "default": 10,
+          "description": "刷新间隔（秒），最小值5",
+          "order": 3
+        },
+        "estock.dataSource": {
+          "type": "string",
+          "default": "smart",
+          "enum": ["smart", "sina", "tencent"],
+          "description": "数据源：smart=A股用新浪+港股用腾讯(推荐)，sina=全用新浪，tencent=全用腾讯",
+          "order": 4
+        },
+        "estock.displayFormat": {
+          "type": "string",
+          "default": "${name} ${changePercent} (${price})",
+          "description": "状态栏显示格式。可用变量：${name}, ${price}, ${change}, ${changePercent}, ${volume}",
+          "order": 5
+        },
+        "estock.statusBarAlignment": {
+          "type": "string",
+          "default": "center",
+          "enum": ["left", "center", "right"],
+          "description": "状态栏显示位置：left=左侧，center=居中，right=右侧",
+          "order": 6
+        },
+        "estock.colorUp": {
+          "type": "string",
+          "default": "#FAAFA0",
+          "description": "上涨颜色（十六进制色值，红色系）",
+          "order": 7
+        },
+        "estock.colorDown": {
+          "type": "string",
+          "default": "#4EC9B0",
+          "description": "下跌颜色（十六进制色值，绿色系）",
+          "order": 8
+        },
+        "estock.colorFlat": {
+          "type": "string",
+          "default": "#CCCCCC",
+          "description": "平盘颜色（十六进制色值）",
+          "order": 9
+        },
+        "estock.colorClosed": {
+          "type": "string",
+          "default": "#AAAAAA",
+          "description": "休市占位颜色（无行情数据时，有数据时保留涨跌色）",
+          "order": 10
+        },
+        "estock.showVolume": {
+          "type": "boolean",
+          "default": true,
+          "description": "详情中显示成交量",
+          "order": 11
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "estock.refresh",
+        "title": "码盯: 刷新股票数据"
+      },
+      {
+        "command": "estock.addStock",
+        "title": "码盯: 添加股票"
+      },
+      {
+        "command": "estock.removeStock",
+        "title": "码盯: 移除股票"
+      },
+      {
+        "command": "estock.showDetail",
+        "title": "码盯: 查看股票详情"
+      },
+      {
+        "command": "estock.switchStock",
+        "title": "码盯: 切换状态栏股票"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./tsconfig.json",
+    "test": "npm run compile && node --test test/*.test.js",
+    "watch": "tsc -watch -p ./tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.4.0"
+  }
+}
