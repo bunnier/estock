@@ -20,7 +20,7 @@ export class StatusBarManager {
       up:     cfg.get<string>('colorUp',     '#FAAFA0'),
       down:   cfg.get<string>('colorDown',   '#4EC9B0'),
       flat:   cfg.get<string>('colorFlat',   '#CCCCCC'),
-      closed: cfg.get<string>('colorClosed', '#AAAAAA'),  // 休市占位色（无数据时）
+      closed: cfg.get<string>('colorClosed', '#AAAAAA'),
     };
   }
 
@@ -83,7 +83,7 @@ export class StatusBarManager {
     });
   }
 
-  /** 收盘后调用：保留收盘价及涨跌颜色，显示"休市"。 */
+  /** 收盘后调用：保留收盘价，使用休市颜色，显示"休市"。 */
   showMarketClosed(symbols?: string[]): void {
     const closedSymbols = symbols ? new Set(symbols) : undefined;
     const colors = this.getColors();
@@ -93,12 +93,10 @@ export class StatusBarManager {
       if (closedSymbols && !closedSymbols.has(symbol)) return;
       const quote = this.lastQuotes.get(symbol);
       if (quote) {
-        // 有行情：保留涨跌颜色，仅追加“休市”文字。
         item.text = this.formatText(quote, true);
-        item.color = this.getColor(quote, colors);
+        item.color = colors.closed;
         item.tooltip = this.buildTooltip(quote) + '\n\n当前休市';
       } else {
-        // 无行情：用休市色占位。
         item.text = `${stripPrefix(symbol)} 休市`;
         item.color = colors.closed;
         item.tooltip = '当前休市';

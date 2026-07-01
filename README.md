@@ -83,7 +83,7 @@ cursor --install-extension estock.estock-watcher
 | `estock.colorUp` | `"#FAAFA0"` | 上涨颜色。 |
 | `estock.colorDown` | `"#4EC9B0"` | 下跌颜色。 |
 | `estock.colorFlat` | `"#CCCCCC"` | 平盘颜色。 |
-| `estock.colorClosed` | `"#AAAAAA"` | 无行情数据时的休市颜色。 |
+| `estock.colorClosed` | `"#AAAAAA"` | 休市颜色，收盘后统一使用。 |
 | `estock.showVolume` | `true` | 详情中是否显示成交量。 |
 
 ### 展示格式

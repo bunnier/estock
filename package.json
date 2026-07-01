@@ -115,7 +115,7 @@
         "estock.colorClosed": {
           "type": "string",
           "default": "#AAAAAA",
-          "description": "休市占位颜色（无行情数据时，有数据时保留涨跌色）",
+          "description": "休市颜色（收盘后统一使用）",
           "order": 10
         },
         "estock.showVolume": {
