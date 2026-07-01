@@ -1,6 +1,6 @@
 # 码盯 (estock)
 
-码盯是一个在 VS Code / Cursor 状态栏查看 A 股、港股股票行情的插件。
+码盯是一个在 VS Code 状态栏查看 A 股、港股股票行情的插件。
 
 > 边写代码，边看一眼行情。
 
@@ -18,18 +18,6 @@
 ### 从插件市场安装
 
 在扩展面板搜索「码盯」或「estock」，点击安装。
-
-如果 Cursor 扩展面板暂时搜索不到，可以使用命令行安装：
-
-```bash
-cursor --install-extension estock.estock-watcher
-```
-
-### 从 VSIX 安装
-
-1. 下载 [最新版本的 `.vsix` 文件](https://github.com/bunnier/estock/releases)。
-2. 打开命令面板，选择 `Install from VSIX...`。
-3. 选择下载好的 `.vsix` 文件，安装后重新加载窗口。
 
 ## 使用
 
