@@ -15,7 +15,7 @@ import { SinaStockSearchProvider, StockSearchResult } from './providers/stockSea
 import { StatusBarManager } from './statusBarManager';
 import { normalizeSymbols, stripPrefix, getMarketTag } from './utils/symbolParser';
 import { HolidayCalendar } from './utils/holidayCalendar';
-import { isMarketOpenForSymbol } from './utils/marketTime';
+import { getMarketStatusForSymbol } from './utils/marketTime';
 
 interface StockSearchProvider {
   search(keyword: string): Promise<StockSearchResult[]>;
@@ -142,22 +142,28 @@ export class StockService {
     const symbols = this.allSymbols;
     if (symbols.length === 0) return;
 
-    const openSymbols: string[] = [];
+    const refreshSymbols: string[] = [];
+    const settlingSymbols: string[] = [];
     const closedSymbols: string[] = [];
     const now = new Date();
     for (const symbol of symbols) {
-      if (await isMarketOpenForSymbol(symbol, now, this.holidayCalendar)) {
-        openSymbols.push(symbol);
+      const status = await getMarketStatusForSymbol(symbol, now, this.holidayCalendar);
+      if (status === 'open') {
+        refreshSymbols.push(symbol);
+      } else if (status === 'settling') {
+        refreshSymbols.push(symbol);
+        settlingSymbols.push(symbol);
       } else {
         closedSymbols.push(symbol);
       }
     }
 
-    if (openSymbols.length > 0) {
-      await this.refreshSymbols(openSymbols);
+    if (refreshSymbols.length > 0) {
+      await this.refreshSymbols(refreshSymbols);
     }
-    if (closedSymbols.length > 0) {
-      this.statusBar.showMarketClosed(closedSymbols);
+    const closedDisplaySymbols = [...settlingSymbols, ...closedSymbols];
+    if (closedDisplaySymbols.length > 0) {
+      this.statusBar.showMarketClosed(closedDisplaySymbols);
     }
   }
 

@@ -4,20 +4,24 @@
  *   - 开盘集合竞价：9:15-9:25
  *   - 静默期：9:25-9:30（不刷新，但也不算休市）
  *   - 上午连续竞价：9:30-11:30
- *   - 午休：11:30-13:00
+ *   - 午间延迟刷新：11:30-11:35
+ *   - 午休：11:35-13:00
  *   - 下午连续竞价：13:00-15:00
  *   - 收盘集合竞价：14:57-15:00（已含在连续竞价内）
+ *   - 收盘后延迟刷新：15:00-15:05
  *
  * 港股：周一至周五。
  *   - 开市前竞价：9:00-9:30
  *   - 上午持续交易：9:30-12:00
- *   - 午休：12:00-13:00
+ *   - 午间延迟刷新：12:00-12:15
+ *   - 午休：12:15-13:00
  *   - 下午持续交易：13:00-16:00
  *   - 收盘竞价：16:00-16:10（港股随机收市，取16:10）
- *   - 16:10-16:20 部分券商仍有延迟数据
+ *   - 收盘后延迟刷新：16:10-16:25
  */
 
 export type MarketCode = 'cn' | 'hk';
+export type MarketStatus = 'open' | 'settling' | 'closed';
 
 export interface HolidayChecker {
   isHoliday(market: MarketCode, dateKey: string): boolean | Promise<boolean>;
@@ -34,10 +38,22 @@ const A_STOCK_RANGES: TimeRange[] = [
   { start: 13 * 60,      end: 15 * 60 },       // 下午连续竞价。
 ];
 
+/** A 股收盘/午间后的延迟刷新时段。 */
+const A_STOCK_SETTLING_RANGES: TimeRange[] = [
+  { start: 11 * 60 + 31, end: 11 * 60 + 35 },
+  { start: 15 * 60 + 1,  end: 15 * 60 + 5 },
+];
+
 /** 港股有行情数据的时段（含集合竞价）。 */
 const HK_STOCK_RANGES: TimeRange[] = [
   { start: 9 * 60,       end: 12 * 60 },       // 开市前竞价 + 上午持续交易。
   { start: 13 * 60,      end: 16 * 60 + 10 },  // 下午持续交易 + 收盘竞价。
+];
+
+/** 港股收盘/午间后的延迟刷新时段。 */
+const HK_STOCK_SETTLING_RANGES: TimeRange[] = [
+  { start: 12 * 60 + 1,      end: 12 * 60 + 15 },
+  { start: 16 * 60 + 11,     end: 16 * 60 + 25 },
 ];
 
 interface ZonedDateParts {
@@ -109,6 +125,21 @@ async function isMarketOpenForMarket(
   return inRanges(parts, ranges);
 }
 
+async function getMarketStatusForMarket(
+  market: MarketCode,
+  date: Date,
+  openRanges: TimeRange[],
+  settlingRanges: TimeRange[],
+  holidayChecker?: HolidayChecker,
+): Promise<MarketStatus> {
+  const parts = getZonedDateParts(date, market);
+  if (!isWorkday(parts)) return 'closed';
+  if (holidayChecker && await holidayChecker.isHoliday(market, parts.dateKey)) return 'closed';
+  if (inRanges(parts, openRanges)) return 'open';
+  if (inRanges(parts, settlingRanges)) return 'settling';
+  return 'closed';
+}
+
 /** 判断当前是否处于 A 股交易时段（含集合竞价）。 */
 export function isAStockOpen(date: Date = new Date(), holidayChecker?: HolidayChecker): Promise<boolean> {
   return isMarketOpenForMarket('cn', date, A_STOCK_RANGES, holidayChecker);
@@ -117,6 +148,18 @@ export function isAStockOpen(date: Date = new Date(), holidayChecker?: HolidayCh
 /** 判断当前是否处于港股交易时段（含集合竞价）。 */
 export function isHKStockOpen(date: Date = new Date(), holidayChecker?: HolidayChecker): Promise<boolean> {
   return isMarketOpenForMarket('hk', date, HK_STOCK_RANGES, holidayChecker);
+}
+
+/** 返回指定股票所属市场当前状态。 */
+export function getMarketStatusForSymbol(
+  symbol: string,
+  date: Date = new Date(),
+  holidayChecker?: HolidayChecker,
+): Promise<MarketStatus> {
+  const market = getMarketFromSymbol(symbol);
+  return market === 'hk'
+    ? getMarketStatusForMarket('hk', date, HK_STOCK_RANGES, HK_STOCK_SETTLING_RANGES, holidayChecker)
+    : getMarketStatusForMarket('cn', date, A_STOCK_RANGES, A_STOCK_SETTLING_RANGES, holidayChecker);
 }
 
 /** 判断指定股票当前是否处于所属市场交易时段。 */
