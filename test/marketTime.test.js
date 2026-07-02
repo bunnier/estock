@@ -4,6 +4,7 @@ const test = require('node:test');
 const {
   isMarketOpenForSymbol,
   isAnyMarketOpenForSymbols,
+  isAStockOpeningAuction,
 } = require('../out/utils/marketTime');
 
 const noHoliday = {
@@ -33,4 +34,22 @@ test('reports any market open only from the supplied symbols', async () => {
 
   assert.equal(await isAnyMarketOpenForSymbols(['hk00700'], date, hkHolidayOnly), false);
   assert.equal(await isAnyMarketOpenForSymbols(['sh601318', 'hk00700'], date, hkHolidayOnly), true);
+});
+
+test('reports China opening auction during the auction window', () => {
+  const date = new Date('2026-07-02T01:19:00.000Z');
+
+  assert.equal(isAStockOpeningAuction(date), true);
+});
+
+test('reports China opening auction as closed after the auction window', () => {
+  const date = new Date('2026-07-02T01:26:00.000Z');
+
+  assert.equal(isAStockOpeningAuction(date), false);
+});
+
+test('reports China opening auction as closed on weekends', () => {
+  const date = new Date('2026-07-04T01:19:00.000Z');
+
+  assert.equal(isAStockOpeningAuction(date), false);
 });

@@ -63,13 +63,17 @@ export class SinaProvider extends DataProvider {
     const name = fields[0] || symbol;
     const open = parseFloat(fields[1]) || 0;
     const yesterday = parseFloat(fields[2]) || 0;
-    const current = parseFloat(fields[3]) || 0;
+    const rawCurrent = parseFloat(fields[3]) || 0;
     const high = parseFloat(fields[4]) || 0;
     const low = parseFloat(fields[5]) || 0;
+    const bid1 = fields.length > 6 ? parseFloat(fields[6]) || 0 : 0;
+    const ask1 = fields.length > 7 ? parseFloat(fields[7]) || 0 : 0;
     const volume = fields.length > 8 ? parseInt(fields[8]) || 0 : 0;
+    // 集合竞价阶段新浪当前价可能为 0，但买一/卖一已有参考成交价。
+    const current = rawCurrent || bid1 || ask1;
 
-    const change = +(current - yesterday).toFixed(4);
-    const changePercent = yesterday !== 0
+    const change = current > 0 ? +(current - yesterday).toFixed(4) : 0;
+    const changePercent = current > 0 && yesterday !== 0
       ? +((change / yesterday) * 100).toFixed(2)
       : 0;
 

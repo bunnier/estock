@@ -6,6 +6,7 @@
 import { DataProvider, Quote } from './baseProvider';
 import { SinaProvider } from './sinaProvider';
 import { TencentProvider } from './tencentProvider';
+import { isAStockOpeningAuction } from '../utils/marketTime';
 
 export class SmartProvider extends DataProvider {
   readonly name = 'smart';
@@ -21,22 +22,25 @@ export class SmartProvider extends DataProvider {
   async fetchQuotes(symbols: string[]): Promise<Quote[]> {
     if (symbols.length === 0) return [];
 
-    // A股和港股分组
+    // A 股和港股分组。
     const aStocks = symbols.filter(s => !s.toLowerCase().startsWith('hk'));
     const hkStocks = symbols.filter(s => s.toLowerCase().startsWith('hk'));
+    const useTencentForAStocks = isAStockOpeningAuction();
+    const sinaStocks = useTencentForAStocks ? [] : aStocks;
+    const tencentStocks = useTencentForAStocks ? [...aStocks, ...hkStocks] : hkStocks;
 
-    // 并行请求
+    // 并行请求。
     const tasks: Promise<Quote[]>[] = [];
-    if (aStocks.length > 0) tasks.push(this.sina.fetchQuotes(aStocks));
-    if (hkStocks.length > 0) tasks.push(this.tencent.fetchQuotes(hkStocks));
+    if (sinaStocks.length > 0) tasks.push(this.sina.fetchQuotes(sinaStocks));
+    if (tencentStocks.length > 0) tasks.push(this.tencent.fetchQuotes(tencentStocks));
 
     const results = await Promise.all(tasks);
 
-    // 合并到 Map
+    // 合并到 Map。
     const quoteMap = new Map<string, Quote>();
     for (const quotes of results) {
       for (const q of quotes) {
-        // 港股标记延迟
+        // 港股标记延迟。
         if (q.symbol.toLowerCase().startsWith('hk')) {
           q.delayed = true;
         }
@@ -44,7 +48,7 @@ export class SmartProvider extends DataProvider {
       }
     }
 
-    // 按原始顺序返回
+    // 按原始顺序返回。
     return symbols.map(s => quoteMap.get(s) || {
       symbol: s,
       name: s,

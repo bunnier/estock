@@ -34,6 +34,12 @@ const A_STOCK_RANGES: TimeRange[] = [
   { start: 13 * 60,      end: 15 * 60 },       // 下午连续竞价。
 ];
 
+/** A 股开盘集合竞价时段。 */
+const A_STOCK_OPENING_AUCTION_RANGE: TimeRange = {
+  start: 9 * 60 + 15,
+  end: 9 * 60 + 25,
+};
+
 /** 港股有行情数据的时段（含集合竞价）。 */
 const HK_STOCK_RANGES: TimeRange[] = [
   { start: 9 * 60,       end: 12 * 60 },       // 开市前竞价 + 上午持续交易。
@@ -93,6 +99,11 @@ function inRanges(parts: ZonedDateParts, ranges: TimeRange[]): boolean {
   return ranges.some(r => totalMin >= r.start && totalMin <= r.end);
 }
 
+function inRange(parts: ZonedDateParts, range: TimeRange): boolean {
+  const totalMin = parts.hour * 60 + parts.minute;
+  return totalMin >= range.start && totalMin <= range.end;
+}
+
 function getMarketFromSymbol(symbol: string): MarketCode {
   return symbol.toLowerCase().startsWith('hk') ? 'hk' : 'cn';
 }
@@ -112,6 +123,12 @@ async function isMarketOpenForMarket(
 /** 判断当前是否处于 A 股交易时段（含集合竞价）。 */
 export function isAStockOpen(date: Date = new Date(), holidayChecker?: HolidayChecker): Promise<boolean> {
   return isMarketOpenForMarket('cn', date, A_STOCK_RANGES, holidayChecker);
+}
+
+/** 判断当前是否处于 A 股开盘集合竞价时段。 */
+export function isAStockOpeningAuction(date: Date = new Date()): boolean {
+  const parts = getZonedDateParts(date, 'cn');
+  return isWorkday(parts) && inRange(parts, A_STOCK_OPENING_AUCTION_RANGE);
 }
 
 /** 判断当前是否处于港股交易时段（含集合竞价）。 */
