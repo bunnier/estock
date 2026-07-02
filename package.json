@@ -1,13 +1,13 @@
 {
   "name": "estock-watcher",
   "displayName": "码盯·禄得金",
-  "description": "编码的同时关注持仓股票行情。",
-  "version": "0.8.5",
+  "description": "边码字，边盯盘，禄得真金。",
+  "version": "0.8.8",
   "icon": "icon.png",
   "publisher": "estock",
   "author": {
     "name": "bunnier",
-    "email": "bunnier1987@qq.com"
+    "email": "zrui@outlook.com"
   },
   "license": "MIT",
   "repository": {
@@ -80,7 +80,7 @@
           "type": "string",
           "default": "smart",
           "enum": ["smart", "sina", "tencent"],
-          "description": "数据源：smart=A股用新浪+港股用腾讯(推荐)，sina=全用新浪，tencent=全用腾讯",
+          "description": "数据源：smart=自动选择(推荐)，sina=全用新浪，tencent=全用腾讯",
           "order": 4
         },
         "estock.displayFormat": {
