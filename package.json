@@ -1,8 +1,8 @@
 {
   "name": "estock-watcher",
-  "displayName": "码盯",
+  "displayName": "码盯·禄得金",
   "description": "编码的同时关注持仓股票行情。",
-  "version": "0.8.0",
+  "version": "0.8.5",
   "icon": "icon.png",
   "publisher": "estock",
   "author": {
@@ -21,6 +21,8 @@
   "keywords": [
     "estock",
     "码盯",
+    "码盯禄得金",
+    "禄得金",
     "股票",
     "行情",
     "股价",
@@ -46,7 +48,7 @@
   ],
   "contributes": {
     "configuration": {
-      "title": "码盯",
+      "title": "码盯·禄得金",
       "properties": {
         "estock.watchList": {
           "type": "array",
