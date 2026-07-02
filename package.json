@@ -129,23 +129,23 @@
     "commands": [
       {
         "command": "estock.refresh",
-        "title": "码盯: 刷新股票数据"
+        "title": "estock: 刷新股票数据"
       },
       {
         "command": "estock.addStock",
-        "title": "码盯: 添加股票"
+        "title": "estock: 添加股票"
       },
       {
         "command": "estock.removeStock",
-        "title": "码盯: 移除股票"
+        "title": "estock: 移除股票"
       },
       {
         "command": "estock.showDetail",
-        "title": "码盯: 查看股票详情"
+        "title": "estock: 查看股票详情"
       },
       {
         "command": "estock.switchStock",
-        "title": "码盯: 切换状态栏股票"
+        "title": "estock: 切换状态栏股票"
       }
     ]
   },
