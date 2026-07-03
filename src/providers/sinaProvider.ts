@@ -63,7 +63,10 @@ export class SinaProvider extends DataProvider {
     const name = fields[0] || symbol;
     const open = parseFloat(fields[1]) || 0;
     const yesterday = parseFloat(fields[2]) || 0;
-    const current = parseFloat(fields[3]) || 0;
+    const rawCurrent = parseFloat(fields[3]) || 0;
+    const current = this.shouldHoldAStockPreviousClose(symbol, rawCurrent, yesterday)
+      ? yesterday
+      : rawCurrent;
     const high = parseFloat(fields[4]) || 0;
     const low = parseFloat(fields[5]) || 0;
     const volume = fields.length > 8 ? parseInt(fields[8]) || 0 : 0;
@@ -84,6 +87,32 @@ export class SinaProvider extends DataProvider {
       low: low || undefined,
       volume: volume || undefined,
       time: time || undefined,
+    };
+  }
+
+  private shouldHoldAStockPreviousClose(symbol: string, current: number, yesterday: number): boolean {
+    if (symbol.toLowerCase().startsWith('hk')) return false;
+    if (current > 0 || yesterday <= 0) return false;
+    return this.isAStockOpeningAuction(new Date());
+  }
+
+  private isAStockOpeningAuction(date: Date): boolean {
+    const parts = this.getChinaTimeParts(date);
+    const totalMinutes = parts.hour * 60 + parts.minute;
+    return totalMinutes >= 9 * 60 + 15 && totalMinutes < 9 * 60 + 25;
+  }
+
+  private getChinaTimeParts(date: Date): { hour: number; minute: number } {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Shanghai',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    });
+    const parts = new Map(formatter.formatToParts(date).map(part => [part.type, part.value]));
+    return {
+      hour: Number(parts.get('hour')),
+      minute: Number(parts.get('minute')),
     };
   }
 

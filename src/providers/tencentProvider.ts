@@ -54,23 +54,31 @@ export class TencentProvider extends DataProvider {
     if (fields.length < 10) return this.emptyQuote(symbol);
 
     const name = fields[1] || symbol;
-    const current = parseFloat(fields[3]) || 0;
-    const yesterday = parseFloat(fields[4]) || current;
+    const rawCurrent = parseFloat(fields[3]) || 0;
+    const rawYesterday = parseFloat(fields[4]) || rawCurrent;
     const open = parseFloat(fields[5]) || 0;
     const volume = parseInt(fields[6]) || 0;
+    const time = fields.length > 30 ? fields[30] : '';
+    const shouldHoldHKPreviousClose = this.shouldHoldHKPreviousClose(symbol);
+    const current = shouldHoldHKPreviousClose
+      ? rawCurrent || rawYesterday
+      : rawCurrent;
+    const yesterday = shouldHoldHKPreviousClose
+      ? current
+      : rawYesterday;
 
-    // 腾讯接口直接提供涨跌额(31)和涨跌幅(32)
-    // 但部分版本可能没有，用 current - yesterday 兜底
-    const change = fields.length > 31
-      ? parseFloat(fields[31]) || +(current - yesterday).toFixed(4)
-      : +(current - yesterday).toFixed(4);
-    const changePercent = fields.length > 32
-      ? parseFloat(fields[32]) || (yesterday !== 0 ? +((change / yesterday) * 100).toFixed(2) : 0)
-      : (yesterday !== 0 ? +((change / yesterday) * 100).toFixed(2) : 0);
+    const canCalculateChange = current > 0 && yesterday > 0;
+    const fallbackChange = fields.length > 31 ? parseFloat(fields[31]) || 0 : 0;
+    const change = canCalculateChange
+      ? +(current - yesterday).toFixed(4)
+      : fallbackChange;
+    const fallbackChangePercent = fields.length > 32 ? parseFloat(fields[32]) || 0 : 0;
+    const changePercent = canCalculateChange
+      ? +((change / yesterday) * 100).toFixed(2)
+      : fallbackChangePercent;
 
     const high = fields.length > 33 ? parseFloat(fields[33]) || 0 : 0;
     const low = fields.length > 34 ? parseFloat(fields[34]) || 0 : 0;
-    const time = fields.length > 30 ? fields[30] : '';
 
     return {
       symbol, name, price: current, change, changePercent,
@@ -79,6 +87,31 @@ export class TencentProvider extends DataProvider {
       low: low || undefined,
       volume: volume || undefined,
       time: time || undefined,
+    };
+  }
+
+  private shouldHoldHKPreviousClose(symbol: string): boolean {
+    if (!symbol.toLowerCase().startsWith('hk')) return false;
+    return this.isHongKongOpeningAuction(new Date());
+  }
+
+  private isHongKongOpeningAuction(date: Date): boolean {
+    const parts = this.getHongKongTimeParts(date);
+    const totalMinutes = parts.hour * 60 + parts.minute;
+    return totalMinutes >= 9 * 60 && totalMinutes < 9 * 60 + 15;
+  }
+
+  private getHongKongTimeParts(date: Date): { hour: number; minute: number } {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Hong_Kong',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    });
+    const parts = new Map(formatter.formatToParts(date).map(part => [part.type, part.value]));
+    return {
+      hour: Number(parts.get('hour')),
+      minute: Number(parts.get('minute')),
     };
   }
 

@@ -69,7 +69,6 @@
 | `estock.displayList` | `["00700", "601318", "002027"]` | 状态栏展示列表，决定显示哪些股票和显示顺序。 |
 | `estock.maxDisplay` | `3` | 展示列表为空时，最多从股票池中展示几只股票。 |
 | `estock.refreshInterval` | `10` | 自动刷新间隔，单位为秒，最小值为 5。 |
-| `estock.dataSource` | `"smart"` | 行情来源，建议保持默认值。 |
 | `estock.displayFormat` | `"${name} ${changePercent} (${currency}${price})"` | 状态栏展示格式。 |
 | `estock.statusBarAlignment` | `"center"` | 状态栏位置，可选 `left`、`center`、`right`。 |
 | `estock.colorUp` | `"#FAAFA0"` | 上涨颜色。 |
@@ -112,7 +111,7 @@
 
 本插件使用免费的公开行情来源，无需配置账号或密钥。免费行情通常会有延迟，尤其是港股行情，状态栏展示仅用于快速查看，不适合作为交易依据。
 
-默认数据源会自动为 A 股和港股选择较合适的免费行情来源。一般建议保持 `estock.dataSource` 为 `smart`。
+插件会自动为 A 股和港股选择较合适的免费行情来源。
 
 ## 反馈
 

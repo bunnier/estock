@@ -8,8 +8,6 @@
 
 import * as vscode from 'vscode';
 import { DataProvider, Quote } from './providers/baseProvider';
-import { SinaProvider } from './providers/sinaProvider';
-import { TencentProvider } from './providers/tencentProvider';
 import { SmartProvider } from './providers/smartProvider';
 import { SinaStockSearchProvider, StockSearchResult } from './providers/stockSearchProvider';
 import { StatusBarManager } from './statusBarManager';
@@ -70,12 +68,6 @@ export class StockService {
     return Math.max(v || 10, 5);
   }
 
-  /** 当前数据源 */
-  private get dataSourceName(): string {
-    return vscode.workspace.getConfiguration('estock')
-      .get<string>('dataSource', 'smart');
-  }
-
   activate(ctx: vscode.ExtensionContext, statusBar: StatusBarManager): void {
     this.ctx = ctx;
     this.statusBar = statusBar;
@@ -95,15 +87,7 @@ export class StockService {
   }
 
   private switchProvider(): void {
-    const name = this.dataSourceName;
-    if (name === 'tencent') {
-      this.provider = new TencentProvider();
-    } else if (name === 'sina') {
-      this.provider = new SinaProvider();
-    } else {
-      // smart: A股用新浪，港股用腾讯
-      this.provider = new SmartProvider();
-    }
+    this.provider = new SmartProvider();
     console.log(`[estock] using provider: ${this.provider.name}`);
   }
 

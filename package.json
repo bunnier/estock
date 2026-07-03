@@ -2,7 +2,7 @@
   "name": "estock-watcher",
   "displayName": "码盯·禄得金",
   "description": "边码字，边盯盘，禄得真金。",
-  "version": "0.8.8",
+  "version": "0.8.9",
   "icon": "icon.png",
   "publisher": "estock",
   "author": {
@@ -76,55 +76,48 @@
           "description": "刷新间隔（秒），最小值5",
           "order": 3
         },
-        "estock.dataSource": {
-          "type": "string",
-          "default": "smart",
-          "enum": ["smart", "sina", "tencent"],
-          "description": "数据源：smart=自动选择(推荐)，sina=全用新浪，tencent=全用腾讯",
-          "order": 4
-        },
         "estock.displayFormat": {
           "type": "string",
           "default": "${name} ${changePercent} (${currency}${price})",
           "description": "状态栏显示格式。可用变量：${name}, ${price}, ${currency}, ${change}, ${changePercent}, ${volume}",
-          "order": 5
+          "order": 4
         },
         "estock.statusBarAlignment": {
           "type": "string",
           "default": "center",
           "enum": ["left", "center", "right"],
           "description": "状态栏显示位置：left=左侧，center=居中，right=右侧",
-          "order": 6
+          "order": 5
         },
         "estock.colorUp": {
           "type": "string",
           "default": "#FAAFA0",
           "description": "上涨颜色（十六进制色值，红色系）",
-          "order": 7
+          "order": 6
         },
         "estock.colorDown": {
           "type": "string",
           "default": "#4EC9B0",
           "description": "下跌颜色（十六进制色值，绿色系）",
-          "order": 8
+          "order": 7
         },
         "estock.colorFlat": {
           "type": "string",
           "default": "#CCCCCC",
           "description": "平盘颜色（十六进制色值）",
-          "order": 9
+          "order": 8
         },
         "estock.colorClosed": {
           "type": "string",
           "default": "#AAAAAA",
           "description": "休市颜色（收盘后统一使用）",
-          "order": 10
+          "order": 9
         },
         "estock.showVolume": {
           "type": "boolean",
           "default": true,
           "description": "详情中显示成交量",
-          "order": 11
+          "order": 10
         }
       }
     },

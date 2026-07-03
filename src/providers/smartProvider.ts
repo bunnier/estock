@@ -1,6 +1,6 @@
 /**
- * 智能数据源：A股用新浪（准实时），港股用腾讯（延迟15分钟，比新浪的22分钟好）
- * 这是免费 API 的最佳组合
+ * 智能数据源：A股平时用新浪，A股集合竞价用腾讯，港股用腾讯。
+ * 这是免费 API 的实用组合。
  */
 
 import { DataProvider, Quote } from './baseProvider';
@@ -21,14 +21,20 @@ export class SmartProvider extends DataProvider {
   async fetchQuotes(symbols: string[]): Promise<Quote[]> {
     if (symbols.length === 0) return [];
 
-    // A股和港股分组
-    const aStocks = symbols.filter(s => !s.toLowerCase().startsWith('hk'));
+    const useTencentForAStocks = this.isAStockOpeningAuction(new Date());
+    const sinaAStocks = useTencentForAStocks
+      ? []
+      : symbols.filter(s => !s.toLowerCase().startsWith('hk'));
+    const tencentAStocks = useTencentForAStocks
+      ? symbols.filter(s => !s.toLowerCase().startsWith('hk'))
+      : [];
     const hkStocks = symbols.filter(s => s.toLowerCase().startsWith('hk'));
+    const tencentStocks = [...tencentAStocks, ...hkStocks];
 
     // 并行请求
     const tasks: Promise<Quote[]>[] = [];
-    if (aStocks.length > 0) tasks.push(this.sina.fetchQuotes(aStocks));
-    if (hkStocks.length > 0) tasks.push(this.tencent.fetchQuotes(hkStocks));
+    if (sinaAStocks.length > 0) tasks.push(this.sina.fetchQuotes(sinaAStocks));
+    if (tencentStocks.length > 0) tasks.push(this.tencent.fetchQuotes(tencentStocks));
 
     const results = await Promise.all(tasks);
 
@@ -53,5 +59,25 @@ export class SmartProvider extends DataProvider {
       changePercent: 0,
       delayed: s.toLowerCase().startsWith('hk'),
     });
+  }
+
+  private isAStockOpeningAuction(date: Date): boolean {
+    const parts = this.getChinaTimeParts(date);
+    const totalMinutes = parts.hour * 60 + parts.minute;
+    return totalMinutes >= 9 * 60 + 15 && totalMinutes < 9 * 60 + 25;
+  }
+
+  private getChinaTimeParts(date: Date): { hour: number; minute: number } {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Shanghai',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    });
+    const parts = new Map(formatter.formatToParts(date).map(part => [part.type, part.value]));
+    return {
+      hour: Number(parts.get('hour')),
+      minute: Number(parts.get('minute')),
+    };
   }
 }
