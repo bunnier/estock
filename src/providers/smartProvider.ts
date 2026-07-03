@@ -1,5 +1,5 @@
 /**
- * 智能数据源：A股平时用新浪，A股集合竞价用腾讯，港股用腾讯。
+ * 智能数据源：A股平时用新浪，A股集合竞价用腾讯，港股用腾讯接口。
  * 这是免费 API 的实用组合。
  */
 
@@ -42,7 +42,6 @@ export class SmartProvider extends DataProvider {
     const quoteMap = new Map<string, Quote>();
     for (const quotes of results) {
       for (const q of quotes) {
-        // 港股标记延迟
         if (q.symbol.toLowerCase().startsWith('hk')) {
           q.delayed = true;
         }

@@ -64,3 +64,25 @@ test('routes China stocks to Tencent during opening auction', async () => {
     assert.equal(quotes[1].symbol, 'hk00700');
   });
 });
+
+test('marks Hong Kong Tencent quotes as delayed', async () => {
+  await withFakeDate('2026-07-03T01:35:00.000Z', async () => {
+    const provider = new SmartProvider();
+    provider.sina = {
+      fetchQuotes: async () => [],
+    };
+    provider.tencent = {
+      fetchQuotes: async (symbols) => symbols.map(symbol => ({
+        symbol,
+        name: symbol,
+        price: 438.6,
+        change: 8.4,
+        changePercent: 1.95,
+      })),
+    };
+
+    const quotes = await provider.fetchQuotes(['hk00700']);
+
+    assert.equal(quotes[0].delayed, true);
+  });
+});

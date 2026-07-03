@@ -22,7 +22,8 @@ export class TencentProvider extends DataProvider {
   async fetchQuotes(symbols: string[]): Promise<Quote[]> {
     if (symbols.length === 0) return [];
 
-    const url = `https://qt.gtimg.cn/q=${symbols.join(',')}`;
+    const querySymbols = symbols.map(symbol => this.toQuerySymbol(symbol));
+    const url = `https://qt.gtimg.cn/q=${querySymbols.join(',')}`;
     const results: Quote[] = [];
 
     try {
@@ -59,11 +60,11 @@ export class TencentProvider extends DataProvider {
     const open = parseFloat(fields[5]) || 0;
     const volume = parseInt(fields[6]) || 0;
     const time = fields.length > 30 ? fields[30] : '';
-    const shouldHoldHKPreviousClose = this.shouldHoldHKPreviousClose(symbol);
-    const current = shouldHoldHKPreviousClose
-      ? rawCurrent || rawYesterday
+    const heldHKPreOpenPrice = this.getHeldHKPreOpenPrice(symbol, rawCurrent, rawYesterday);
+    const current = heldHKPreOpenPrice !== undefined
+      ? heldHKPreOpenPrice
       : rawCurrent;
-    const yesterday = shouldHoldHKPreviousClose
+    const yesterday = heldHKPreOpenPrice !== undefined
       ? current
       : rawYesterday;
 
@@ -90,15 +91,24 @@ export class TencentProvider extends DataProvider {
     };
   }
 
-  private shouldHoldHKPreviousClose(symbol: string): boolean {
-    if (!symbol.toLowerCase().startsWith('hk')) return false;
-    return this.isHongKongOpeningAuction(new Date());
+  private toQuerySymbol(symbol: string): string {
+    return symbol.toLowerCase().startsWith('hk') ? `r_${symbol}` : symbol;
   }
 
-  private isHongKongOpeningAuction(date: Date): boolean {
+  private getHeldHKPreOpenPrice(symbol: string, rawCurrent: number, rawYesterday: number): number | undefined {
+    if (!symbol.toLowerCase().startsWith('hk')) return undefined;
+    const preOpenStage = this.getHongKongPreOpenStage(new Date());
+    if (preOpenStage === 'early') return rawCurrent || rawYesterday;
+    if (preOpenStage === 'late') return rawYesterday || rawCurrent;
+    return undefined;
+  }
+
+  private getHongKongPreOpenStage(date: Date): 'early' | 'late' | undefined {
     const parts = this.getHongKongTimeParts(date);
     const totalMinutes = parts.hour * 60 + parts.minute;
-    return totalMinutes >= 9 * 60 && totalMinutes < 9 * 60 + 15;
+    if (totalMinutes >= 9 * 60 && totalMinutes < 9 * 60 + 15) return 'early';
+    if (totalMinutes >= 9 * 60 + 15 && totalMinutes < 9 * 60 + 30) return 'late';
+    return undefined;
   }
 
   private getHongKongTimeParts(date: Date): { hour: number; minute: number } {

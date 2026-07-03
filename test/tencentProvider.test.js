@@ -8,7 +8,37 @@ function buildTencentLine(symbol, fields) {
   return `v_${symbol}="${fields.join('~')}";`;
 }
 
-test('computes Hong Kong stock change percent from current price after auction hold', async () => {
+test('queries realtime Tencent symbol for Hong Kong stocks', async () => {
+  const originalHttpGet = httpClient.httpGet;
+  let requestedUrl = '';
+  const fields = Array.from({ length: 35 }, () => '');
+  fields[1] = '腾讯控股';
+  fields[2] = '00700';
+  fields[3] = '438.60';
+  fields[4] = '430.20';
+  fields[5] = '433.00';
+  fields[30] = '2026/07/03 09:34:19';
+  fields[31] = '8.40';
+  fields[32] = '1.95';
+
+  httpClient.httpGet = async (url) => {
+    requestedUrl = url;
+    return buildTencentLine('r_hk00700', fields);
+  };
+
+  try {
+    const provider = new TencentProvider();
+    const quotes = await provider.fetchQuotes(['hk00700']);
+
+    assert.equal(requestedUrl, 'https://qt.gtimg.cn/q=r_hk00700');
+    assert.equal(quotes[0].price, 438.6);
+    assert.equal(quotes[0].changePercent, 1.95);
+  } finally {
+    httpClient.httpGet = originalHttpGet;
+  }
+});
+
+test('computes Hong Kong stock change percent after pre-open hold', async () => {
   const originalHttpGet = httpClient.httpGet;
   const OriginalDate = Date;
   const fields = Array.from({ length: 35 }, () => '');
@@ -27,13 +57,13 @@ test('computes Hong Kong stock change percent from current price after auction h
   global.Date = class FakeDate extends OriginalDate {
     constructor(...args) {
       if (args.length === 0) {
-        return new OriginalDate('2026-07-03T01:20:00.000Z');
+        return new OriginalDate('2026-07-03T01:35:00.000Z');
       }
       return new OriginalDate(...args);
     }
 
     static now() {
-      return new OriginalDate('2026-07-03T01:20:00.000Z').getTime();
+      return new OriginalDate('2026-07-03T01:35:00.000Z').getTime();
     }
   };
 
@@ -125,6 +155,46 @@ test('keeps stale Tencent current price as previous close for Hong Kong auction 
     const quotes = await provider.fetchQuotes(['hk01810']);
 
     assert.equal(quotes[0].price, 22.6);
+    assert.equal(quotes[0].change, 0);
+    assert.equal(quotes[0].changePercent, 0);
+  } finally {
+    httpClient.httpGet = originalHttpGet;
+    global.Date = OriginalDate;
+  }
+});
+
+test('keeps Hong Kong stock at previous close before continuous trading starts', async () => {
+  const originalHttpGet = httpClient.httpGet;
+  const OriginalDate = Date;
+  const fields = Array.from({ length: 35 }, () => '');
+  fields[1] = '腾讯控股';
+  fields[2] = '00700';
+  fields[3] = '435.00';
+  fields[4] = '430.20';
+  fields[5] = '0.00';
+  fields[30] = '2026/07/03 09:15:01';
+  fields[31] = '4.80';
+  fields[32] = '1.12';
+
+  httpClient.httpGet = async () => buildTencentLine('hk00700', fields);
+  global.Date = class FakeDate extends OriginalDate {
+    constructor(...args) {
+      if (args.length === 0) {
+        return new OriginalDate('2026-07-03T01:29:00.000Z');
+      }
+      return new OriginalDate(...args);
+    }
+
+    static now() {
+      return new OriginalDate('2026-07-03T01:29:00.000Z').getTime();
+    }
+  };
+
+  try {
+    const provider = new TencentProvider();
+    const quotes = await provider.fetchQuotes(['hk00700']);
+
+    assert.equal(quotes[0].price, 430.2);
     assert.equal(quotes[0].change, 0);
     assert.equal(quotes[0].changePercent, 0);
   } finally {
