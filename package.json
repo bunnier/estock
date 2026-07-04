@@ -124,15 +124,15 @@
     "commands": [
       {
         "command": "estock.refresh",
-        "title": "estock: 刷新股票数据"
+        "title": "estock: 刷新股票行情"
       },
       {
         "command": "estock.addStock",
-        "title": "estock: 添加股票"
+        "title": "estock: 添加股票到股票池"
       },
       {
         "command": "estock.removeStock",
-        "title": "estock: 移除股票"
+        "title": "estock: 从股票池删除股票"
       },
       {
         "command": "estock.showDetail",
@@ -140,7 +140,7 @@
       },
       {
         "command": "estock.switchStock",
-        "title": "estock: 切换状态栏股票"
+        "title": "estock: 切换状态栏展示股票"
       }
     ]
   },
