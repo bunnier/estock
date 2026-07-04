@@ -1,6 +1,6 @@
 /**
- * DataProvider 抽象接口
- * 所有数据源必须实现 fetchQuotes 方法
+ * DataProvider 抽象接口。
+ * 内部行情接口必须实现 fetchQuotes 方法。
  */
 
 export interface Quote {

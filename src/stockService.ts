@@ -71,7 +71,7 @@ export class StockService {
   activate(ctx: vscode.ExtensionContext, statusBar: StatusBarManager): void {
     this.ctx = ctx;
     this.statusBar = statusBar;
-    this.switchProvider();
+    this.initProvider();
 
     ctx.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration(e => {
@@ -86,13 +86,13 @@ export class StockService {
     this.refreshOnce();
   }
 
-  private switchProvider(): void {
+  private initProvider(): void {
     this.provider = new SmartProvider();
     console.log(`[estock] using provider: ${this.provider.name}`);
   }
 
   private onConfigChanged(): void {
-    this.switchProvider();
+    this.initProvider();
     this.statusBar.reload(this.displayList);
     this.restartTimer();
     this.refreshOnce();
