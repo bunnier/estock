@@ -116,3 +116,58 @@ test('addStockByInput searches Chinese keywords and adds the selected stock', as
     vscode.window.showInformationMessage = originalShowInformationMessage;
   }
 });
+
+test('refreshOnce keeps closed market display after fetching fresh quotes', async () => {
+  const config = createConfig({
+    watchList: ['601318'],
+    displayList: ['601318'],
+    maxDisplay: 3,
+  });
+
+  const originalGetConfiguration = vscode.workspace.getConfiguration;
+  const OriginalDate = Date;
+  const calls = [];
+
+  vscode.workspace.getConfiguration = () => config;
+  global.Date = class FakeDate extends OriginalDate {
+    constructor(...args) {
+      if (args.length === 0) {
+        return new OriginalDate('2026-07-02T08:00:00.000Z');
+      }
+      return new OriginalDate(...args);
+    }
+
+    static now() {
+      return new OriginalDate('2026-07-02T08:00:00.000Z').getTime();
+    }
+  };
+
+  try {
+    const service = new StockService();
+    service.holidayCalendar = { isHoliday: async () => false };
+    service.provider = {
+      name: 'test',
+      fetchQuotes: async (symbols) => symbols.map(symbol => ({
+        symbol,
+        name: '中国平安',
+        price: 50,
+        change: 1,
+        changePercent: 2,
+      })),
+    };
+    service.statusBar = {
+      updateQuotes: (quotes) => calls.push(['updateQuotes', quotes.map(q => q.symbol)]),
+      showMarketClosed: (symbols) => calls.push(['showMarketClosed', symbols]),
+    };
+
+    await service.refreshOnce();
+
+    assert.deepEqual(calls, [
+      ['updateQuotes', ['sh601318']],
+      ['showMarketClosed', ['sh601318']],
+    ]);
+  } finally {
+    vscode.workspace.getConfiguration = originalGetConfiguration;
+    global.Date = OriginalDate;
+  }
+});

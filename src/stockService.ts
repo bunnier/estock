@@ -119,10 +119,14 @@ export class StockService {
 
   /** 手动刷新（命令触发，不受开盘判断限制） */
   async refreshOnce(): Promise<void> {
-    await this.refreshSymbols(this.allSymbols);
+    await this.refreshByMarketStatus(true);
   }
 
   private async refreshMarketAware(): Promise<void> {
+    await this.refreshByMarketStatus(false);
+  }
+
+  private async refreshByMarketStatus(includeClosedRefresh: boolean): Promise<void> {
     const symbols = this.allSymbols;
     if (symbols.length === 0) return;
 
@@ -138,6 +142,9 @@ export class StockService {
         refreshSymbols.push(symbol);
         settlingSymbols.push(symbol);
       } else {
+        if (includeClosedRefresh) {
+          refreshSymbols.push(symbol);
+        }
         closedSymbols.push(symbol);
       }
     }
