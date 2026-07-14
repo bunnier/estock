@@ -7,7 +7,7 @@
  */
 
 import * as vscode from 'vscode';
-import { DataProvider, Quote } from './providers/baseProvider';
+import { calculateAmplitude, DataProvider, Quote } from './providers/baseProvider';
 import { SmartProvider } from './providers/smartProvider';
 import { SinaStockSearchProvider, StockSearchResult } from './providers/stockSearchProvider';
 import { StatusBarManager } from './statusBarManager';
@@ -374,12 +374,13 @@ export class StockService {
     if (quote.open !== undefined)  lines.push(`  今开：    ${quote.open.toFixed(2)}`);
     if (quote.high !== undefined)  lines.push(`  最高：    ${quote.high.toFixed(2)}`);
     if (quote.low !== undefined)   lines.push(`  最低：    ${quote.low.toFixed(2)}`);
-    if (quote.high !== undefined && quote.low !== undefined && quote.previousClose !== undefined && quote.previousClose > 0) {
-      const amplitude = ((quote.high - quote.low) / quote.previousClose) * 100;
-      lines.push(`  振幅：    ${amplitude.toFixed(2)}%`);
-    }
+    const amplitude = calculateAmplitude(quote);
+    if (amplitude !== undefined) lines.push(`  振幅：    ${amplitude.toFixed(2)}%`);
     if (quote.volume !== undefined) lines.push(`  成交量：  ${quote.volume.toLocaleString()}`);
-    if (quote.time)                 lines.push(`  更新时间：${quote.time}`);
+    if (quote.time) {
+      const delayTag = quote.delayed ? ' (延迟约15分钟)' : '';
+      lines.push(`  更新时间：${quote.time}${delayTag}`);
+    }
     lines.push(`  雪球详情：${toXueqiuUrl(quote.symbol)}`);
     lines.push(``, `╚══════════════════════════════════════╝`);
 

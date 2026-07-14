@@ -5,7 +5,7 @@
  */
 
 import * as vscode from 'vscode';
-import { Quote } from './providers/baseProvider';
+import { calculateAmplitude, Quote } from './providers/baseProvider';
 import { stripPrefix, getMarketTag, getCurrencySymbol, toXueqiuUrl } from './utils/symbolParser';
 
 export class StatusBarManager {
@@ -58,7 +58,7 @@ export class StatusBarManager {
       };
       item.text = `${stripPrefix(symbol)} ...`;
       item.color = colors.flat;
-      item.tooltip = this.buildLinkedTooltip(symbol, `${stripPrefix(symbol)} - 点击切换股票`);
+      item.tooltip = this.buildLinkedTooltip(symbol, [`${stripPrefix(symbol)} - 点击切换股票`]);
       item.show();
       this.items.push(item);
     });
@@ -99,7 +99,7 @@ export class StatusBarManager {
       } else {
         item.text = `${stripPrefix(symbol)} 休市`;
         item.color = colors.closed;
-        item.tooltip = this.buildLinkedTooltip(symbol, '当前休市');
+        item.tooltip = this.buildLinkedTooltip(symbol, ['当前休市']);
       }
     });
   }
@@ -147,7 +147,6 @@ export class StatusBarManager {
   private buildTooltip(quote: Quote, isClosed = false): vscode.MarkdownString {
     const lines: string[] = [
       `${this.formatName(quote)} (${stripPrefix(quote.symbol)})`,
-      '',
       `当前价：${quote.price.toFixed(2)}`,
       `涨跌：${quote.change >= 0 ? '+' : ''}${quote.change.toFixed(2)}  (${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent.toFixed(2)}%)`,
     ];
@@ -155,27 +154,28 @@ export class StatusBarManager {
     if (quote.open !== undefined) lines.push(`今开：${quote.open.toFixed(2)}`);
     if (quote.high !== undefined) lines.push(`最高：${quote.high.toFixed(2)}`);
     if (quote.low !== undefined)  lines.push(`最低：${quote.low.toFixed(2)}`);
-
-    const cfg = vscode.workspace.getConfiguration('estock');
-    if (cfg.get<boolean>('showVolume', false) && quote.volume !== undefined) {
-      lines.push(`成交量：${quote.volume}`);
-    }
+    const amplitude = calculateAmplitude(quote);
+    if (amplitude !== undefined) lines.push(`振幅：${amplitude.toFixed(2)}%`);
+    if (quote.volume !== undefined) lines.push(`成交量：${quote.volume}`);
     if (quote.time) {
       const delayTag = quote.delayed ? ' (延迟约15分钟)' : '';
-      lines.push(`更新：${quote.time}${delayTag}`);
+      lines.push(`更新时间：${quote.time}${delayTag}`);
     }
     if (isClosed) {
-      lines.push('', '当前休市');
+      lines.push('当前休市');
     }
 
-    return this.buildLinkedTooltip(quote.symbol, lines.join('\n'));
+    return this.buildLinkedTooltip(quote.symbol, lines);
   }
 
   /** 构建带雪球入口的悬浮提示。 */
-  private buildLinkedTooltip(symbol: string, text: string): vscode.MarkdownString {
+  private buildLinkedTooltip(symbol: string, lines: string[]): vscode.MarkdownString {
     const tooltip = new vscode.MarkdownString();
-    tooltip.appendText(text);
-    tooltip.appendMarkdown(`\n\n[查看雪球详情页](${toXueqiuUrl(symbol)})`);
+    for (const line of lines) {
+      tooltip.appendText(line);
+      tooltip.appendMarkdown('  \n');
+    }
+    tooltip.appendMarkdown(`[雪球详情](${toXueqiuUrl(symbol)})`);
     return tooltip;
   }
 

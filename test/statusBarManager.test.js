@@ -100,6 +100,12 @@ test('display format supports currency placeholder for China and Hong Kong stock
         price: 50,
         change: 1,
         changePercent: 2,
+        previousClose: 49,
+        open: 49.5,
+        high: 51,
+        low: 48,
+        volume: 12345,
+        time: '2026-07-14 15:00:00',
       },
       {
         symbol: 'hk00700',
@@ -112,8 +118,16 @@ test('display format supports currency placeholder for China and Hong Kong stock
 
     assert.equal(items[0].text, '中国平安(A) +2.00% (¥50.00)');
     assert.equal(items[1].text, '腾讯控股(H) -0.47% ($421.00)');
-    assert.match(items[0].tooltip.value, /\[查看雪球详情页\]\(https:\/\/xueqiu\.com\/S\/SH601318\)/);
-    assert.match(items[1].tooltip.value, /\[查看雪球详情页\]\(https:\/\/xueqiu\.com\/S\/00700\)/);
+    assert.match(items[0].tooltip.value, /\[雪球详情\]\(https:\/\/xueqiu\.com\/S\/SH601318\)/);
+    assert.match(items[1].tooltip.value, /\[雪球详情\]\(https:\/\/xueqiu\.com\/S\/00700\)/);
+    assert.match(items[0].tooltip.value, /今开：49\.50/);
+    assert.match(items[0].tooltip.value, /最高：51\.00/);
+    assert.match(items[0].tooltip.value, /最低：48\.00/);
+    assert.match(items[0].tooltip.value, /振幅：6\.12%/);
+    assert.match(items[0].tooltip.value, /成交量：12345/);
+    assert.match(items[0].tooltip.value, /更新时间：2026-07-14 15:00:00/);
+    assert.match(items[0].tooltip.value, /  \n当前价/);
+    assert.doesNotMatch(items[0].tooltip.value, /\n\n/);
   } finally {
     vscode.workspace.getConfiguration = originalGetConfiguration;
     vscode.window.createStatusBarItem = originalCreateStatusBarItem;

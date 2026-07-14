@@ -19,6 +19,14 @@ export interface Quote {
   delayed?: boolean;    // 是否延迟数据（港股免费 API 有延迟）
 }
 
+/** 计算当日振幅。 */
+export function calculateAmplitude(quote: Pick<Quote, 'high' | 'low' | 'previousClose'>): number | undefined {
+  if (quote.high === undefined || quote.low === undefined || quote.previousClose === undefined || quote.previousClose <= 0) {
+    return undefined;
+  }
+  return ((quote.high - quote.low) / quote.previousClose) * 100;
+}
+
 export abstract class DataProvider {
   abstract readonly name: string;
 

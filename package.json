@@ -2,7 +2,7 @@
   "name": "estock-watcher",
   "displayName": "码盯·撸得金",
   "description": "边码字，边盯盘，撸得真金。",
-  "version": "0.8.89",
+  "version": "0.9.0",
   "icon": "icon.png",
   "publisher": "estock",
   "author": {
@@ -112,12 +112,6 @@
           "default": "#AAAAAA",
           "description": "休市颜色（收盘后统一使用）",
           "order": 9
-        },
-        "estock.showVolume": {
-          "type": "boolean",
-          "default": true,
-          "description": "详情中显示成交量",
-          "order": 10
         }
       }
     },

@@ -261,6 +261,8 @@ test('showDetail includes a clickable Xueqiu URL', async () => {
         previousClose: 26,
         high: 27,
         low: 25,
+        time: '2026-07-14 15:00:00',
+        delayed: true,
       }],
     };
 
@@ -268,6 +270,7 @@ test('showDetail includes a clickable Xueqiu URL', async () => {
 
     assert.match(output[0], /雪球详情：https:\/\/xueqiu\.com\/S\/00772/);
     assert.match(output[0], /振幅：\s+7\.69%/);
+    assert.match(output[0], /更新时间：.*\(延迟约15分钟\)/);
   } finally {
     vscode.window.showQuickPick = originalShowQuickPick;
     vscode.window.createOutputChannel = originalCreateOutputChannel;
