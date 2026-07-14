@@ -94,3 +94,12 @@ export function toDisplaySymbol(symbol: string): string {
   if (s.startsWith('hk')) return symbol.substring(2) + '.HK';
   return symbol;
 }
+
+/** 返回雪球股票详情链接。 */
+export function toXueqiuUrl(symbol: string): string {
+  const normalized = normalizeSymbol(symbol);
+  const xueqiuSymbol = normalized.startsWith('hk')
+    ? stripPrefix(normalized)
+    : normalized.toUpperCase();
+  return `https://xueqiu.com/S/${xueqiuSymbol}`;
+}

@@ -6,7 +6,7 @@
 
 import * as vscode from 'vscode';
 import { Quote } from './providers/baseProvider';
-import { stripPrefix, getMarketTag, getCurrencySymbol } from './utils/symbolParser';
+import { stripPrefix, getMarketTag, getCurrencySymbol, toXueqiuUrl } from './utils/symbolParser';
 
 export class StatusBarManager {
   private items: vscode.StatusBarItem[] = [];
@@ -58,7 +58,7 @@ export class StatusBarManager {
       };
       item.text = `${stripPrefix(symbol)} ...`;
       item.color = colors.flat;
-      item.tooltip = `${stripPrefix(symbol)} - 点击切换股票`;
+      item.tooltip = this.buildLinkedTooltip(symbol, `${stripPrefix(symbol)} - 点击切换股票`);
       item.show();
       this.items.push(item);
     });
@@ -95,11 +95,11 @@ export class StatusBarManager {
       if (quote) {
         item.text = this.formatText(quote, true);
         item.color = colors.closed;
-        item.tooltip = this.buildTooltip(quote) + '\n\n当前休市';
+        item.tooltip = this.buildTooltip(quote, true);
       } else {
         item.text = `${stripPrefix(symbol)} 休市`;
         item.color = colors.closed;
-        item.tooltip = '当前休市';
+        item.tooltip = this.buildLinkedTooltip(symbol, '当前休市');
       }
     });
   }
@@ -144,7 +144,7 @@ export class StatusBarManager {
   }
 
   /** 构建 hover tooltip 详情 */
-  private buildTooltip(quote: Quote): string {
+  private buildTooltip(quote: Quote, isClosed = false): vscode.MarkdownString {
     const lines: string[] = [
       `${this.formatName(quote)} (${stripPrefix(quote.symbol)})`,
       '',
@@ -164,8 +164,19 @@ export class StatusBarManager {
       const delayTag = quote.delayed ? ' (延迟约15分钟)' : '';
       lines.push(`更新：${quote.time}${delayTag}`);
     }
+    if (isClosed) {
+      lines.push('', '当前休市');
+    }
 
-    return lines.join('\n');
+    return this.buildLinkedTooltip(quote.symbol, lines.join('\n'));
+  }
+
+  /** 构建带雪球入口的悬浮提示。 */
+  private buildLinkedTooltip(symbol: string, text: string): vscode.MarkdownString {
+    const tooltip = new vscode.MarkdownString();
+    tooltip.appendText(text);
+    tooltip.appendMarkdown(`\n\n[雪球查看详情](${toXueqiuUrl(symbol)})`);
+    return tooltip;
   }
 
   /** 获取某只股票的最新缓存行情 */

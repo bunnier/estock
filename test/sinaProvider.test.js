@@ -41,6 +41,7 @@ test('keeps China stock at previous close when auction current price is zero', a
     const quotes = await provider.fetchQuotes(['sz002027']);
 
     assert.equal(quotes[0].price, 4.91);
+    assert.equal(quotes[0].previousClose, 4.91);
     assert.equal(quotes[0].change, 0);
     assert.equal(quotes[0].changePercent, 0);
   } finally {

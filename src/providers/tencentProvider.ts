@@ -83,6 +83,7 @@ export class TencentProvider extends DataProvider {
 
     return {
       symbol, name, price: current, change, changePercent,
+      previousClose: rawYesterday || undefined,
       open: open || undefined,
       high: high || undefined,
       low: low || undefined,

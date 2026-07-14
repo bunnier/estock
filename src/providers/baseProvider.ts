@@ -9,6 +9,7 @@ export interface Quote {
   price: number;        // 当前价
   change: number;       // 涨跌额
   changePercent: number;// 涨跌幅(%)
+  previousClose?: number;// 昨收。
   open?: number;       // 今开
   high?: number;       // 最高
   low?: number;        // 最低

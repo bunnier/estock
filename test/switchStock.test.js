@@ -229,3 +229,42 @@ test('refreshOnce keeps closed market display after fetching fresh quotes', asyn
     global.Date = OriginalDate;
   }
 });
+
+test('showDetail includes a clickable Xueqiu URL', async () => {
+  const originalShowQuickPick = vscode.window.showQuickPick;
+  const originalCreateOutputChannel = vscode.window.createOutputChannel;
+  const output = [];
+
+  vscode.window.showQuickPick = async (items) => items[0];
+  vscode.window.createOutputChannel = () => ({
+    clear() {},
+    appendLine(value) {
+      output.push(value);
+    },
+    show() {},
+  });
+
+  try {
+    const service = new StockService();
+    service.statusBar = {
+      getAllLastQuotes: () => [{
+        symbol: 'hk00772',
+        name: '阅文集团',
+        price: 26.5,
+        change: 0.5,
+        changePercent: 1.92,
+        previousClose: 26,
+        high: 27,
+        low: 25,
+      }],
+    };
+
+    await service.showDetail();
+
+    assert.match(output[0], /雪球详情：https:\/\/xueqiu\.com\/S\/00772/);
+    assert.match(output[0], /振幅：\s+7\.69%/);
+  } finally {
+    vscode.window.showQuickPick = originalShowQuickPick;
+    vscode.window.createOutputChannel = originalCreateOutputChannel;
+  }
+});

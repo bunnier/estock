@@ -82,6 +82,7 @@ export class SinaProvider extends DataProvider {
 
     return {
       symbol, name, price: current, change, changePercent,
+      previousClose: yesterday || undefined,
       open: open || undefined,
       high: high || undefined,
       low: low || undefined,
@@ -149,6 +150,7 @@ export class SinaProvider extends DataProvider {
 
     return {
       symbol, name, price: current, change, changePercent,
+      previousClose: yesterday || undefined,
       open: open || undefined,
       high: high || undefined,
       low: low || undefined,

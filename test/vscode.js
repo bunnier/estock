@@ -7,6 +7,22 @@ const workspace = {
   },
 };
 
+class MarkdownString {
+  constructor() {
+    this.value = '';
+  }
+
+  appendText(value) {
+    this.value += value;
+    return this;
+  }
+
+  appendMarkdown(value) {
+    this.value += value;
+    return this;
+  }
+}
+
 const window = {
   showQuickPick() {
     throw new Error('showQuickPick stub was not installed.');
@@ -39,6 +55,7 @@ module.exports = {
   ProgressLocation: {
     Notification: 15,
   },
+  MarkdownString,
   StatusBarAlignment: {
     Left: 1,
     Right: 2,

@@ -155,6 +155,7 @@ test('keeps stale Tencent current price as previous close for Hong Kong auction 
     const quotes = await provider.fetchQuotes(['hk01810']);
 
     assert.equal(quotes[0].price, 22.6);
+    assert.equal(quotes[0].previousClose, 21.64);
     assert.equal(quotes[0].change, 0);
     assert.equal(quotes[0].changePercent, 0);
   } finally {
