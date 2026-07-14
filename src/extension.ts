@@ -1,5 +1,5 @@
 /**
- * 码盯·禄得金 (estock) 插件入口
+ * 码盯·撸得金 (estock) 插件入口
  * 注册命令、初始化 StatusBarManager 和 StockService
  */
 
@@ -18,7 +18,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
   ctx.subscriptions.push(
     vscode.commands.registerCommand('estock.refresh', async () => {
       await stockService?.refreshOnce();
-      vscode.window.showInformationMessage('码盯·禄得金: 数据已刷新');
+      vscode.window.showInformationMessage('码盯·撸得金: 数据已刷新');
     }),
 
     vscode.commands.registerCommand('estock.addStock', async () => {

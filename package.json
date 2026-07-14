@@ -1,7 +1,7 @@
 {
   "name": "estock-watcher",
-  "displayName": "码盯·禄得金",
-  "description": "边码字，边盯盘，禄得真金。",
+  "displayName": "码盯·撸得金",
+  "description": "边码字，边盯盘，撸得真金。",
   "version": "0.8.15",
   "icon": "icon.png",
   "publisher": "estock",
@@ -21,8 +21,8 @@
   "keywords": [
     "estock",
     "码盯",
-    "码盯禄得金",
-    "禄得金",
+    "码盯撸得金",
+    "撸得金",
     "股票",
     "行情",
     "股价",
@@ -48,7 +48,7 @@
   ],
   "contributes": {
     "configuration": {
-      "title": "码盯·禄得金",
+      "title": "码盯·撸得金",
       "properties": {
         "estock.watchList": {
           "type": "array",

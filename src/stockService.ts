@@ -358,7 +358,7 @@ export class StockService {
     if (!quote) return;
 
     const tag = getMarketTag(quote.symbol);
-    const channel = vscode.window.createOutputChannel('码盯·禄得金');
+    const channel = vscode.window.createOutputChannel('码盯·撸得金');
     const lines: string[] = [
       `╔══════════════════════════════════════╗`,
       `║  ${quote.name}(${tag}) (${stripPrefix(quote.symbol)})`,
