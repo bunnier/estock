@@ -196,7 +196,7 @@ export class StockService {
       return;
     }
 
-    const newList = [...(raw || []), symbol.trim()];
+    const newList = [...(raw || []), normalized];
     await vscode.workspace.getConfiguration('estock')
       .update('watchList', newList, vscode.ConfigurationTarget.Global);
     vscode.window.showInformationMessage(`已添加 ${stripPrefix(normalized)} 到股票池`);
@@ -238,7 +238,7 @@ export class StockService {
     );
 
     if (!pick) return;
-    await this.addStock(pick.code);
+    await this.addStock(pick.symbol);
   }
 
   /** 从股票池移除 */
@@ -315,15 +315,10 @@ export class StockService {
     if (position < (rawDisplay || []).length) {
       // 替换已有位置
       newDisplay = [...(rawDisplay || [])];
-      // 存原始代码（未标准化），用原始格式
-      const rawPool = cfg.get<string[]>('watchList', []) || [];
-      const rawSymbol = rawPool.find(s => normalizeSymbols([s])[0] === pick.symbol) || stripPrefix(pick.symbol);
-      newDisplay[position] = rawSymbol;
+      newDisplay[position] = pick.symbol;
     } else {
       // 追加到末尾
-      const rawPool = cfg.get<string[]>('watchList', []) || [];
-      const rawSymbol = rawPool.find(s => normalizeSymbols([s])[0] === pick.symbol) || stripPrefix(pick.symbol);
-      newDisplay = [...(rawDisplay || []), rawSymbol];
+      newDisplay = [...(rawDisplay || []), pick.symbol];
     }
 
     await cfg.update('displayList', newDisplay, vscode.ConfigurationTarget.Global);

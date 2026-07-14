@@ -24,7 +24,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('estock.addStock', async () => {
       const input = await vscode.window.showInputBox({
         prompt: '输入股票代码或中文名称',
-        placeHolder: '如 600519、00700、中国平安、腾讯控股',
+        placeHolder: '如 sh000001、sz000001、hk00700、中国平安',
         validateInput: (value: string) => {
           const v = value.trim();
           return v ? null : '请输入股票代码或中文名称';

@@ -52,14 +52,14 @@
       "properties": {
         "estock.watchList": {
           "type": "array",
-          "default": ["601318", "00700", "002027", "601899"],
-          "description": "股票池：所有关注的股票代码（A股6位，港股5位）",
+          "default": ["sh601318", "hk00700", "sz002027", "sh601899"],
+          "description": "股票池：所有关注的股票代码（推荐使用 sh/sz/hk 市场前缀，兼容旧版 A股6位、港股5位代码）",
           "items": { "type": "string" },
           "order": 0
         },
         "estock.displayList": {
           "type": "array",
-          "default": ["00700", "601318", "002027"],
+          "default": ["hk00700", "sh601318", "sz002027"],
           "description": "状态栏展示列表（从股票池中选择，为空时默认取股票池前 maxDisplay 个）",
           "items": { "type": "string" },
           "order": 1

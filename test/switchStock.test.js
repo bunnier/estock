@@ -60,7 +60,7 @@ test('switchStock without a command argument asks for the display position first
 
     await service.switchStock();
 
-    assert.deepEqual(config.values.displayList, ['00700']);
+    assert.deepEqual(config.values.displayList, ['hk00700']);
     assert.equal(quickPickCalls, 2);
   } finally {
     vscode.workspace.getConfiguration = originalGetConfiguration;
@@ -108,8 +108,54 @@ test('addStockByInput searches Chinese keywords and adds the selected stock', as
 
     await service.addStockByInput('平安');
 
-    assert.deepEqual(config.values.watchList, ['601318']);
+    assert.deepEqual(config.values.watchList, ['sh601318']);
     assert.deepEqual(messages, ['已添加 601318 到股票池']);
+  } finally {
+    vscode.workspace.getConfiguration = originalGetConfiguration;
+    vscode.window.showQuickPick = originalShowQuickPick;
+    vscode.window.showInformationMessage = originalShowInformationMessage;
+  }
+});
+
+test('addStockByInput preserves the exchange prefix for ambiguous codes', async () => {
+  const config = createConfig({
+    watchList: ['000001'],
+    displayList: [],
+    maxDisplay: 3,
+  });
+
+  const originalGetConfiguration = vscode.workspace.getConfiguration;
+  const originalShowQuickPick = vscode.window.showQuickPick;
+  const originalShowInformationMessage = vscode.window.showInformationMessage;
+
+  vscode.workspace.getConfiguration = () => config;
+  vscode.window.showQuickPick = async (items) => {
+    const resolvedItems = Array.isArray(items) ? items : await items;
+    return resolvedItems.find(item => item.symbol === 'sh000001');
+  };
+  vscode.window.showInformationMessage = () => undefined;
+
+  try {
+    const service = new StockService({
+      search: async () => [
+        { symbol: 'sh000001', code: '000001', name: '上证指数', market: 'A' },
+        { symbol: 'sz000001', code: '000001', name: '平安银行', market: 'A' },
+      ],
+    });
+    service.provider = {
+      name: 'test',
+      fetchQuotes: async (symbols) => symbols.map(symbol => ({
+        symbol,
+        name: '上证指数',
+        price: 3500,
+        change: 10,
+        changePercent: 0.29,
+      })),
+    };
+
+    await service.addStockByInput('上证指数');
+
+    assert.deepEqual(config.values.watchList, ['000001', 'sh000001']);
   } finally {
     vscode.workspace.getConfiguration = originalGetConfiguration;
     vscode.window.showQuickPick = originalShowQuickPick;
