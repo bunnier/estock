@@ -112,8 +112,8 @@ test('display format supports currency placeholder for China and Hong Kong stock
 
     assert.equal(items[0].text, '中国平安(A) +2.00% (¥50.00)');
     assert.equal(items[1].text, '腾讯控股(H) -0.47% ($421.00)');
-    assert.match(items[0].tooltip.value, /\[雪球查看详情\]\(https:\/\/xueqiu\.com\/S\/SH601318\)/);
-    assert.match(items[1].tooltip.value, /\[雪球查看详情\]\(https:\/\/xueqiu\.com\/S\/00700\)/);
+    assert.match(items[0].tooltip.value, /\[查看雪球详情页\]\(https:\/\/xueqiu\.com\/S\/SH601318\)/);
+    assert.match(items[1].tooltip.value, /\[查看雪球详情页\]\(https:\/\/xueqiu\.com\/S\/00700\)/);
   } finally {
     vscode.workspace.getConfiguration = originalGetConfiguration;
     vscode.window.createStatusBarItem = originalCreateStatusBarItem;

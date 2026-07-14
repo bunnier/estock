@@ -175,7 +175,7 @@ export class StatusBarManager {
   private buildLinkedTooltip(symbol: string, text: string): vscode.MarkdownString {
     const tooltip = new vscode.MarkdownString();
     tooltip.appendText(text);
-    tooltip.appendMarkdown(`\n\n[雪球查看详情](${toXueqiuUrl(symbol)})`);
+    tooltip.appendMarkdown(`\n\n[查看雪球详情页](${toXueqiuUrl(symbol)})`);
     return tooltip;
   }
 
