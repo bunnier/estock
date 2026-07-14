@@ -41,9 +41,11 @@ test('switchStock without a command argument asks for the display position first
   const originalShowQuickPick = vscode.window.showQuickPick;
 
   let quickPickCalls = 0;
+  const quickPickOptions = [];
   vscode.workspace.getConfiguration = () => config;
-  vscode.window.showQuickPick = async (items) => {
+  vscode.window.showQuickPick = async (items, options) => {
     quickPickCalls += 1;
+    quickPickOptions.push(options);
     const resolvedItems = Array.isArray(items) ? items : await items;
     if (quickPickCalls === 1) {
       return resolvedItems[0];
@@ -62,6 +64,9 @@ test('switchStock without a command argument asks for the display position first
 
     assert.deepEqual(config.values.displayList, ['hk00700']);
     assert.equal(quickPickCalls, 2);
+    assert.equal(quickPickOptions[0].matchOnDescription, true);
+    assert.equal(quickPickOptions[1].matchOnDescription, true);
+    assert.equal(quickPickOptions[1].placeHolder, '输入股票代码或名称，选择要展示在位置 1 的股票（当前: 601318）');
   } finally {
     vscode.workspace.getConfiguration = originalGetConfiguration;
     vscode.window.showQuickPick = originalShowQuickPick;

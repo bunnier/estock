@@ -287,7 +287,10 @@ export class StockService {
           description: this.statusBar.getLastQuote(symbol)?.name,
           position: index,
         })),
-        { placeHolder: '选择要切换的状态栏位置' }
+        {
+          placeHolder: '输入股票代码或名称，选择要切换的状态栏位置',
+          matchOnDescription: true,
+        }
       );
       if (!positionPick) return;
       position = positionPick.position;
@@ -309,7 +312,8 @@ export class StockService {
         };
       }),
       {
-        placeHolder: `选择要展示在位置 ${position + 1} 的股票${currentSymbol ? `（当前: ${stripPrefix(currentSymbol)}）` : ''}`,
+        placeHolder: `输入股票代码或名称，选择要展示在位置 ${position + 1} 的股票${currentSymbol ? `（当前: ${stripPrefix(currentSymbol)}）` : ''}`,
+        matchOnDescription: true,
       }
     );
     if (!pick) return;
