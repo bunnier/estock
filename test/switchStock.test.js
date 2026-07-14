@@ -78,8 +78,10 @@ test('addStockByInput searches Chinese keywords and adds the selected stock', as
   const originalGetConfiguration = vscode.workspace.getConfiguration;
   const originalShowQuickPick = vscode.window.showQuickPick;
   const originalShowInformationMessage = vscode.window.showInformationMessage;
+  const originalWithProgress = vscode.window.withProgress;
 
   const messages = [];
+  const progressOptions = [];
   vscode.workspace.getConfiguration = () => config;
   vscode.window.showQuickPick = async (items) => {
     const resolvedItems = Array.isArray(items) ? items : await items;
@@ -87,6 +89,10 @@ test('addStockByInput searches Chinese keywords and adds the selected stock', as
   };
   vscode.window.showInformationMessage = (message) => {
     messages.push(message);
+  };
+  vscode.window.withProgress = async (options, task) => {
+    progressOptions.push(options);
+    return task();
   };
 
   try {
@@ -110,10 +116,16 @@ test('addStockByInput searches Chinese keywords and adds the selected stock', as
 
     assert.deepEqual(config.values.watchList, ['sh601318']);
     assert.deepEqual(messages, ['已添加 601318 到股票池']);
+    assert.deepEqual(progressOptions, [{
+      location: vscode.ProgressLocation.Notification,
+      title: '正在搜索股票：平安',
+      cancellable: false,
+    }]);
   } finally {
     vscode.workspace.getConfiguration = originalGetConfiguration;
     vscode.window.showQuickPick = originalShowQuickPick;
     vscode.window.showInformationMessage = originalShowInformationMessage;
+    vscode.window.withProgress = originalWithProgress;
   }
 });
 

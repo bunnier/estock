@@ -11,6 +11,9 @@ const window = {
   showQuickPick() {
     throw new Error('showQuickPick stub was not installed.');
   },
+  withProgress(_options, task) {
+    return task();
+  },
   showInformationMessage() {},
   showWarningMessage() {},
   showErrorMessage() {},
@@ -32,6 +35,9 @@ const window = {
 module.exports = {
   ConfigurationTarget: {
     Global: 1,
+  },
+  ProgressLocation: {
+    Notification: 15,
   },
   StatusBarAlignment: {
     Left: 1,

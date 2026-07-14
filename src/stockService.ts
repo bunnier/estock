@@ -214,7 +214,14 @@ export class StockService {
 
     let results: StockSearchResult[];
     try {
-      results = await this.searchProvider.search(keyword);
+      results = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `正在搜索股票：${keyword}`,
+          cancellable: false,
+        },
+        () => this.searchProvider.search(keyword),
+      );
     } catch (e) {
       console.warn('[estock] stock search failed', e);
       vscode.window.showErrorMessage(`搜索股票失败，请稍后重试: ${keyword}`);
