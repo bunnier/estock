@@ -100,7 +100,6 @@ export class TencentProvider extends DataProvider {
     if (!symbol.toLowerCase().startsWith('hk')) return undefined;
     const preOpenStage = this.getHongKongPreOpenStage(new Date());
     if (preOpenStage === 'early') return rawCurrent || rawYesterday;
-    if (preOpenStage === 'late') return rawYesterday || rawCurrent;
     return undefined;
   }
 
@@ -108,7 +107,6 @@ export class TencentProvider extends DataProvider {
     const parts = this.getHongKongTimeParts(date);
     const totalMinutes = parts.hour * 60 + parts.minute;
     if (totalMinutes >= 9 * 60 && totalMinutes < 9 * 60 + 15) return 'early';
-    if (totalMinutes >= 9 * 60 + 15 && totalMinutes < 9 * 60 + 30) return 'late';
     return undefined;
   }
 

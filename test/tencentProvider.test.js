@@ -164,18 +164,20 @@ test('keeps stale Tencent current price as previous close for Hong Kong auction 
   }
 });
 
-test('keeps Hong Kong stock at previous close before continuous trading starts', async () => {
+test('uses Hong Kong current auction price after 9:15', async () => {
   const originalHttpGet = httpClient.httpGet;
   const OriginalDate = Date;
   const fields = Array.from({ length: 35 }, () => '');
   fields[1] = '腾讯控股';
   fields[2] = '00700';
-  fields[3] = '435.00';
-  fields[4] = '430.20';
-  fields[5] = '0.00';
-  fields[30] = '2026/07/03 09:15:01';
-  fields[31] = '4.80';
-  fields[32] = '1.12';
+  fields[3] = '467.60';
+  fields[4] = '456.20';
+  fields[5] = '467.60';
+  fields[30] = '2026/07/15 09:20:46';
+  fields[31] = '11.40';
+  fields[32] = '2.50';
+  fields[33] = '467.60';
+  fields[34] = '467.60';
 
   httpClient.httpGet = async () => buildTencentLine('hk00700', fields);
   global.Date = class FakeDate extends OriginalDate {
@@ -195,9 +197,12 @@ test('keeps Hong Kong stock at previous close before continuous trading starts',
     const provider = new TencentProvider();
     const quotes = await provider.fetchQuotes(['hk00700']);
 
-    assert.equal(quotes[0].price, 430.2);
-    assert.equal(quotes[0].change, 0);
-    assert.equal(quotes[0].changePercent, 0);
+    assert.equal(quotes[0].price, 467.6);
+    assert.equal(quotes[0].change, 11.4);
+    assert.equal(quotes[0].changePercent, 2.5);
+    assert.equal(quotes[0].open, 467.6);
+    assert.equal(quotes[0].high, 467.6);
+    assert.equal(quotes[0].low, 467.6);
   } finally {
     httpClient.httpGet = originalHttpGet;
     global.Date = OriginalDate;
