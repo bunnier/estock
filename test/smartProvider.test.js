@@ -86,3 +86,48 @@ test('marks Hong Kong Tencent quotes as delayed', async () => {
     assert.equal(quotes[0].delayed, true);
   });
 });
+
+test('merges Tencent valuation metrics into China stock Sina quotes', async () => {
+  await withFakeDate('2026-07-03T01:35:00.000Z', async () => {
+    const provider = new SmartProvider();
+    const sinaCalls = [];
+    const tencentCalls = [];
+    provider.sina = {
+      fetchQuotes: async (symbols) => {
+        sinaCalls.push(symbols);
+        return symbols.map(symbol => ({
+          symbol,
+          name: '分众传媒',
+          price: 4.85,
+          change: 0.11,
+          changePercent: 2.32,
+        }));
+      },
+    };
+    provider.tencent = {
+      fetchQuotes: async (symbols) => {
+        tencentCalls.push(symbols);
+        return symbols.map(symbol => ({
+          symbol,
+          name: '分众传媒',
+          price: 4.86,
+          change: 0.12,
+          changePercent: 2.53,
+          pe: 19.45,
+          pb: 5.51,
+          dividendYield: 7.01,
+        }));
+      },
+    };
+
+    const quotes = await provider.fetchQuotes(['sz002027']);
+
+    assert.deepEqual(sinaCalls, [['sz002027']]);
+    assert.deepEqual(tencentCalls, [['sz002027']]);
+    assert.equal(quotes[0].price, 4.85);
+    assert.equal(quotes[0].changePercent, 2.32);
+    assert.equal(quotes[0].pe, 19.45);
+    assert.equal(quotes[0].pb, 5.51);
+    assert.equal(quotes[0].dividendYield, 7.01);
+  });
+});

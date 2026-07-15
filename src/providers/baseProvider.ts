@@ -15,6 +15,9 @@ export interface Quote {
   low?: number;        // 最低
   volume?: number;      // 成交量（手/股）
   turnover?: number;    // 成交额
+  pe?: number;          // 市盈率。
+  pb?: number;          // 市净率。
+  dividendYield?: number;// 股息率（%）。
   time?: string;       // 更新时间
   delayed?: boolean;    // 是否延迟数据（港股免费 API 有延迟）
 }

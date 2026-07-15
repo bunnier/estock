@@ -104,6 +104,9 @@ test('display format supports currency placeholder for China and Hong Kong stock
         open: 49.5,
         high: 51,
         low: 48,
+        pe: 8.88,
+        pb: 1.23,
+        dividendYield: 4.56,
         volume: 12345,
         time: '2026-07-14 15:00:00',
       },
@@ -124,7 +127,10 @@ test('display format supports currency placeholder for China and Hong Kong stock
     assert.match(items[0].tooltip.value, /最高：51\.00/);
     assert.match(items[0].tooltip.value, /最低：48\.00/);
     assert.match(items[0].tooltip.value, /振幅：6\.12%/);
-    assert.match(items[0].tooltip.value, /成交量：12345/);
+    assert.match(items[0].tooltip.value, /PE：8\.88/);
+    assert.match(items[0].tooltip.value, /PB：1\.23/);
+    assert.match(items[0].tooltip.value, /股息率：4\.56%/);
+    assert.match(items[0].tooltip.value, /成交量：12,345/);
     assert.match(items[0].tooltip.value, /更新时间：2026-07-14 15:00:00/);
     assert.match(items[0].tooltip.value, /  \n当前价/);
     assert.doesNotMatch(items[0].tooltip.value, /\n\n/);

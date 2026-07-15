@@ -338,10 +338,20 @@ export class StockService {
 
   /** 显示股票详情（QuickPick 选择 → OutputChannel 展示） */
   async showDetail(): Promise<void> {
-    const quotes = this.statusBar.getAllLastQuotes();
+    const symbols = this.watchList;
+
+    if (symbols.length === 0) {
+      vscode.window.showInformationMessage('暂无股票数据，请先添加关注股票');
+      return;
+    }
+
+    await this.refreshSymbols(symbols);
+    const quotes = symbols
+      .map(symbol => this.statusBar.getLastQuote(symbol))
+      .filter((quote): quote is Quote => quote !== undefined);
 
     if (quotes.length === 0) {
-      vscode.window.showInformationMessage('暂无股票数据，请先添加关注股票');
+      vscode.window.showInformationMessage('暂无股票数据，请先刷新或检查股票池');
       return;
     }
 
@@ -376,6 +386,9 @@ export class StockService {
     if (quote.low !== undefined)   lines.push(`  最低：    ${quote.low.toFixed(2)}`);
     const amplitude = calculateAmplitude(quote);
     if (amplitude !== undefined) lines.push(`  振幅：    ${amplitude.toFixed(2)}%`);
+    if (quote.pe !== undefined) lines.push(`  PE：      ${quote.pe.toFixed(2)}`);
+    if (quote.pb !== undefined) lines.push(`  PB：      ${quote.pb.toFixed(2)}`);
+    if (quote.dividendYield !== undefined) lines.push(`  股息率：  ${quote.dividendYield.toFixed(2)}%`);
     if (quote.volume !== undefined) lines.push(`  成交量：  ${quote.volume.toLocaleString()}`);
     if (quote.time) {
       const delayTag = quote.delayed ? ' (延迟约15分钟)' : '';

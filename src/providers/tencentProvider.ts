@@ -80,6 +80,7 @@ export class TencentProvider extends DataProvider {
 
     const high = fields.length > 33 ? parseFloat(fields[33]) || 0 : 0;
     const low = fields.length > 34 ? parseFloat(fields[34]) || 0 : 0;
+    const valuation = this.parseValuationMetrics(symbol, fields);
 
     return {
       symbol, name, price: current, change, changePercent,
@@ -88,6 +89,9 @@ export class TencentProvider extends DataProvider {
       high: high || undefined,
       low: low || undefined,
       volume: volume || undefined,
+      pe: valuation.pe,
+      pb: valuation.pb,
+      dividendYield: valuation.dividendYield,
       time: time || undefined,
     };
   }
@@ -122,6 +126,21 @@ export class TencentProvider extends DataProvider {
       hour: Number(parts.get('hour')),
       minute: Number(parts.get('minute')),
     };
+  }
+
+  private parseValuationMetrics(symbol: string, fields: string[]): { pe?: number; pb?: number; dividendYield?: number } {
+    const isHK = symbol.toLowerCase().startsWith('hk');
+    return {
+      pe: this.parseOptionalNumber(fields[isHK ? 57 : 39]),
+      pb: this.parseOptionalNumber(fields[isHK ? 58 : 46]),
+      dividendYield: this.parseOptionalNumber(fields[isHK ? 47 : 64]),
+    };
+  }
+
+  private parseOptionalNumber(value: string | undefined): number | undefined {
+    if (value === undefined || value.trim() === '') return undefined;
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
   }
 
   private emptyQuote(symbol: string): Quote {

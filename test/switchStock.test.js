@@ -236,10 +236,19 @@ test('refreshOnce keeps closed market display after fetching fresh quotes', asyn
 });
 
 test('showDetail includes a clickable Xueqiu URL', async () => {
+  const config = createConfig({
+    watchList: ['00772'],
+    displayList: [],
+    maxDisplay: 1,
+  });
+
+  const originalGetConfiguration = vscode.workspace.getConfiguration;
   const originalShowQuickPick = vscode.window.showQuickPick;
   const originalCreateOutputChannel = vscode.window.createOutputChannel;
   const output = [];
+  const cache = new Map();
 
+  vscode.workspace.getConfiguration = () => config;
   vscode.window.showQuickPick = async (items) => items[0];
   vscode.window.createOutputChannel = () => ({
     clear() {},
@@ -251,8 +260,9 @@ test('showDetail includes a clickable Xueqiu URL', async () => {
 
   try {
     const service = new StockService();
-    service.statusBar = {
-      getAllLastQuotes: () => [{
+    service.provider = {
+      name: 'test',
+      fetchQuotes: async () => [{
         symbol: 'hk00772',
         name: '阅文集团',
         price: 26.5,
@@ -261,17 +271,92 @@ test('showDetail includes a clickable Xueqiu URL', async () => {
         previousClose: 26,
         high: 27,
         low: 25,
+        pe: 15.63,
+        pb: 3.31,
+        dividendYield: 1.16,
         time: '2026-07-14 15:00:00',
         delayed: true,
       }],
+    };
+    service.statusBar = {
+      updateQuotes: (quotes) => {
+        for (const quote of quotes) {
+          cache.set(quote.symbol, quote);
+        }
+      },
+      getLastQuote: (symbol) => cache.get(symbol),
     };
 
     await service.showDetail();
 
     assert.match(output[0], /雪球详情：https:\/\/xueqiu\.com\/S\/00772/);
     assert.match(output[0], /振幅：\s+7\.69%/);
+    assert.match(output[0], /PE：\s+15\.63/);
+    assert.match(output[0], /PB：\s+3\.31/);
+    assert.match(output[0], /股息率：\s+1\.16%/);
     assert.match(output[0], /更新时间：.*\(延迟约15分钟\)/);
   } finally {
+    vscode.workspace.getConfiguration = originalGetConfiguration;
+    vscode.window.showQuickPick = originalShowQuickPick;
+    vscode.window.createOutputChannel = originalCreateOutputChannel;
+  }
+});
+
+test('showDetail lets users pick stocks from the full watch list', async () => {
+  const config = createConfig({
+    watchList: ['601318', '00700'],
+    displayList: ['601318'],
+    maxDisplay: 1,
+  });
+
+  const originalGetConfiguration = vscode.workspace.getConfiguration;
+  const originalShowQuickPick = vscode.window.showQuickPick;
+  const originalCreateOutputChannel = vscode.window.createOutputChannel;
+  const output = [];
+  const cache = new Map();
+  const quickPickSymbols = [];
+
+  vscode.workspace.getConfiguration = () => config;
+  vscode.window.showQuickPick = async (items) => {
+    const resolvedItems = Array.isArray(items) ? items : await items;
+    quickPickSymbols.push(...resolvedItems.map(item => item.symbol));
+    return resolvedItems.find(item => item.symbol === 'hk00700');
+  };
+  vscode.window.createOutputChannel = () => ({
+    clear() {},
+    appendLine(value) {
+      output.push(value);
+    },
+    show() {},
+  });
+
+  try {
+    const service = new StockService();
+    service.provider = {
+      name: 'test',
+      fetchQuotes: async (symbols) => symbols.map(symbol => ({
+        symbol,
+        name: symbol === 'hk00700' ? '腾讯控股' : '中国平安',
+        price: symbol === 'hk00700' ? 460 : 50,
+        change: symbol === 'hk00700' ? 4 : 1,
+        changePercent: symbol === 'hk00700' ? 0.88 : 2,
+      })),
+    };
+    service.statusBar = {
+      updateQuotes: (quotes) => {
+        for (const quote of quotes) {
+          cache.set(quote.symbol, quote);
+        }
+      },
+      getLastQuote: (symbol) => cache.get(symbol),
+    };
+
+    await service.showDetail();
+
+    assert.deepEqual(quickPickSymbols, ['sh601318', 'hk00700']);
+    assert.match(output[0], /腾讯控股\(H\) \(00700\)/);
+  } finally {
+    vscode.workspace.getConfiguration = originalGetConfiguration;
     vscode.window.showQuickPick = originalShowQuickPick;
     vscode.window.createOutputChannel = originalCreateOutputChannel;
   }

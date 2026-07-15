@@ -38,6 +38,68 @@ test('queries realtime Tencent symbol for Hong Kong stocks', async () => {
   }
 });
 
+test('parses China stock valuation metrics from Tencent quote', async () => {
+  const originalHttpGet = httpClient.httpGet;
+  const fields = Array.from({ length: 88 }, () => '');
+  fields[1] = '贵州茅台';
+  fields[2] = '600519';
+  fields[3] = '1209.60';
+  fields[4] = '1214.88';
+  fields[5] = '1203.66';
+  fields[30] = '20260715093445';
+  fields[31] = '-5.28';
+  fields[32] = '-0.43';
+  fields[33] = '1211.88';
+  fields[34] = '1198.66';
+  fields[39] = '18.28';
+  fields[46] = '6.49';
+  fields[64] = '4.30';
+
+  httpClient.httpGet = async () => buildTencentLine('sh600519', fields);
+
+  try {
+    const provider = new TencentProvider();
+    const quotes = await provider.fetchQuotes(['sh600519']);
+
+    assert.equal(quotes[0].pe, 18.28);
+    assert.equal(quotes[0].pb, 6.49);
+    assert.equal(quotes[0].dividendYield, 4.3);
+  } finally {
+    httpClient.httpGet = originalHttpGet;
+  }
+});
+
+test('parses Hong Kong stock valuation metrics from Tencent quote', async () => {
+  const originalHttpGet = httpClient.httpGet;
+  const fields = Array.from({ length: 78 }, () => '');
+  fields[1] = '腾讯控股';
+  fields[2] = '00700';
+  fields[3] = '457.60';
+  fields[4] = '456.20';
+  fields[5] = '467.60';
+  fields[30] = '2026/07/15 09:34:47';
+  fields[31] = '1.40';
+  fields[32] = '0.31';
+  fields[33] = '467.60';
+  fields[34] = '455.40';
+  fields[47] = '1.16';
+  fields[57] = '15.63';
+  fields[58] = '3.31';
+
+  httpClient.httpGet = async () => buildTencentLine('r_hk00700', fields);
+
+  try {
+    const provider = new TencentProvider();
+    const quotes = await provider.fetchQuotes(['hk00700']);
+
+    assert.equal(quotes[0].pe, 15.63);
+    assert.equal(quotes[0].pb, 3.31);
+    assert.equal(quotes[0].dividendYield, 1.16);
+  } finally {
+    httpClient.httpGet = originalHttpGet;
+  }
+});
+
 test('computes Hong Kong stock change percent after pre-open hold', async () => {
   const originalHttpGet = httpClient.httpGet;
   const OriginalDate = Date;
