@@ -235,6 +235,61 @@ test('refreshOnce keeps closed market display after fetching fresh quotes', asyn
   }
 });
 
+test('refreshOnce fetches explicitly displayed stocks even when they are outside the watch list', async () => {
+  const config = createConfig({
+    watchList: ['600183', '601318'],
+    displayList: ['sh600183', 'sh601318', 'sz002027'],
+    maxDisplay: 5,
+  });
+
+  const originalGetConfiguration = vscode.workspace.getConfiguration;
+  const OriginalDate = Date;
+  const calls = [];
+
+  vscode.workspace.getConfiguration = () => config;
+  global.Date = class FakeDate extends OriginalDate {
+    constructor(...args) {
+      if (args.length === 0) {
+        return new OriginalDate('2026-07-15T02:00:00.000Z');
+      }
+      return new OriginalDate(...args);
+    }
+
+    static now() {
+      return new OriginalDate('2026-07-15T02:00:00.000Z').getTime();
+    }
+  };
+
+  try {
+    const service = new StockService();
+    service.holidayCalendar = { isHoliday: async () => false };
+    service.provider = {
+      name: 'test',
+      fetchQuotes: async (symbols) => {
+        calls.push(symbols);
+        return symbols.map(symbol => ({
+          symbol,
+          name: symbol,
+          price: 10,
+          change: 0,
+          changePercent: 0,
+        }));
+      },
+    };
+    service.statusBar = {
+      updateQuotes: () => undefined,
+      showMarketClosed: () => undefined,
+    };
+
+    await service.refreshOnce();
+
+    assert.deepEqual(calls, [['sh600183', 'sh601318', 'sz002027']]);
+  } finally {
+    vscode.workspace.getConfiguration = originalGetConfiguration;
+    global.Date = OriginalDate;
+  }
+});
+
 test('showDetail includes a clickable Xueqiu URL', async () => {
   const config = createConfig({
     watchList: ['00772'],

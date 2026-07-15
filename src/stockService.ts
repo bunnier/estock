@@ -3,7 +3,7 @@
  * 管理股票池、展示列表、刷新定时器、开盘判断、切换股票
  *
  * watchList  → 股票池（所有关注的股票）
- * displayList → 状态栏展示的股票（watchList 的子集，可排序）
+ * displayList → 状态栏展示的股票（可独立配置，可排序）
  */
 
 import * as vscode from 'vscode';
@@ -44,21 +44,17 @@ export class StockService {
     const raw = vscode.workspace.getConfiguration('estock')
       .get<string[]>('displayList', []);
     const normalized = normalizeSymbols(raw || []);
-    const pool = this.watchList;
-    // 过滤掉不在 watchList 中的
-    const valid = normalized.filter(s => pool.includes(s));
-    // 如果 displayList 为空或无效，默认取 watchList 前 maxDisplay 个
-    if (valid.length === 0) {
+    if (normalized.length === 0) {
       const maxDisplay = vscode.workspace.getConfiguration('estock')
         .get<number>('maxDisplay', 8);
-      return pool.slice(0, maxDisplay);
+      return this.watchList.slice(0, maxDisplay);
     }
-    return valid;
+    return normalized;
   }
 
-  /** 需要请求行情的所有股票（watchList 全量，保证缓存完整） */
+  /** 需要请求行情的所有股票（watchList 与 displayList 的合集，保证缓存完整） */
   private get allSymbols(): string[] {
-    return this.watchList;
+    return Array.from(new Set([...this.watchList, ...this.displayList]));
   }
 
   /** 刷新间隔（秒） */
