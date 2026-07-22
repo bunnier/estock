@@ -6,7 +6,13 @@
 
 import * as vscode from 'vscode';
 import { calculateAmplitude, Quote } from './providers/baseProvider';
-import { stripPrefix, getMarketTag, getCurrencySymbol, toXueqiuUrl } from './utils/symbolParser';
+import {
+  stripPrefix,
+  getMarketTag,
+  getCurrencySymbol,
+  toXueqiuUrl,
+  formatPrice,
+} from './utils/symbolParser';
 
 export class StatusBarManager {
   private items: vscode.StatusBarItem[] = [];
@@ -115,17 +121,18 @@ export class StatusBarManager {
     const cfg = vscode.workspace.getConfiguration('estock');
     const format = cfg.get<string>('displayFormat', '${name} ${changePercent} (${currency}${price})');
 
-    const changeStr = quote.changePercent >= 0
+    const percentChangeStr = quote.changePercent >= 0
       ? `+${quote.changePercent.toFixed(2)}%`
       : `${quote.changePercent.toFixed(2)}%`;
 
-    const priceStr = quote.price > 0 ? quote.price.toFixed(2) : '---';
+    const priceStr = quote.price > 0 ? formatPrice(quote.symbol, quote.price) : '---';
+    const changeStr = formatPrice(quote.symbol, quote.change);
 
     let text = format
       .replace(/\$\{name\}/g, this.formatName(quote))
       .replace(/\$\{price\}/g, priceStr)
-      .replace(/\$\{change\}/g, quote.change >= 0 ? `+${quote.change.toFixed(2)}` : `${quote.change.toFixed(2)}`)
-      .replace(/\$\{changePercent\}/g, changeStr)
+      .replace(/\$\{change\}/g, quote.change >= 0 ? `+${changeStr}` : changeStr)
+      .replace(/\$\{changePercent\}/g, percentChangeStr)
       .replace(/\$\{currency\}/g, getCurrencySymbol(quote.symbol))
       .replace(/\$\{volume\}/g, quote.volume ? String(quote.volume) : '---');
 
@@ -145,15 +152,16 @@ export class StatusBarManager {
 
   /** 构建 hover tooltip 详情 */
   private buildTooltip(quote: Quote, isClosed = false): vscode.MarkdownString {
+    const price = (value: number): string => formatPrice(quote.symbol, value);
     const lines: string[] = [
       `${this.formatName(quote)} (${stripPrefix(quote.symbol)})`,
-      `当前价：${quote.price.toFixed(2)}`,
-      `涨跌：${quote.change >= 0 ? '+' : ''}${quote.change.toFixed(2)}  (${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent.toFixed(2)}%)`,
+      `当前价：${price(quote.price)}`,
+      `涨跌：${quote.change >= 0 ? '+' : ''}${price(quote.change)}  (${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent.toFixed(2)}%)`,
     ];
 
-    if (quote.open !== undefined) lines.push(`今开：${quote.open.toFixed(2)}`);
-    if (quote.high !== undefined) lines.push(`最高：${quote.high.toFixed(2)}`);
-    if (quote.low !== undefined)  lines.push(`最低：${quote.low.toFixed(2)}`);
+    if (quote.open !== undefined) lines.push(`今开：${price(quote.open)}`);
+    if (quote.high !== undefined) lines.push(`最高：${price(quote.high)}`);
+    if (quote.low !== undefined)  lines.push(`最低：${price(quote.low)}`);
     const amplitude = calculateAmplitude(quote);
     if (amplitude !== undefined) lines.push(`振幅：${amplitude.toFixed(2)}%`);
     if (quote.pe !== undefined) lines.push(`PE：${quote.pe.toFixed(2)}`);

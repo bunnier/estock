@@ -11,7 +11,7 @@ import { calculateAmplitude, DataProvider, Quote } from './providers/baseProvide
 import { SmartProvider } from './providers/smartProvider';
 import { SinaStockSearchProvider, StockSearchResult } from './providers/stockSearchProvider';
 import { StatusBarManager } from './statusBarManager';
-import { normalizeSymbols, stripPrefix, getMarketTag, toXueqiuUrl } from './utils/symbolParser';
+import { formatPrice, normalizeSymbols, stripPrefix, getMarketTag, toXueqiuUrl } from './utils/symbolParser';
 import { HolidayCalendar } from './utils/holidayCalendar';
 import { getMarketStatusForSymbol } from './utils/marketTime';
 
@@ -303,7 +303,9 @@ export class StockService {
         const nameWithTag = quote ? `${quote.name}(${tag})` : `${stripPrefix(s)}(${tag})`;
         return {
           label: `${isCurrent ? '● ' : '  '}${stripPrefix(s)}`,
-          description: quote ? `${nameWithTag}  ${quote.price.toFixed(2)}  ${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent.toFixed(2)}%` : nameWithTag,
+          description: quote
+            ? `${nameWithTag}  ${formatPrice(s, quote.price)}  ${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent.toFixed(2)}%`
+            : nameWithTag,
           symbol: s,
         };
       }),
@@ -356,7 +358,7 @@ export class StockService {
         const tag = getMarketTag(q.symbol);
         return {
           label: `${q.name}(${tag}) (${stripPrefix(q.symbol)})`,
-          description: `${q.price.toFixed(2)}  ${q.changePercent >= 0 ? '+' : ''}${q.changePercent.toFixed(2)}%`,
+          description: `${formatPrice(q.symbol, q.price)}  ${q.changePercent >= 0 ? '+' : ''}${q.changePercent.toFixed(2)}%`,
           symbol: q.symbol,
         };
       }),
@@ -368,18 +370,19 @@ export class StockService {
     if (!quote) return;
 
     const tag = getMarketTag(quote.symbol);
+    const price = (value: number): string => formatPrice(quote.symbol, value);
     const channel = vscode.window.createOutputChannel('码盯·撸得金');
     const lines: string[] = [
       `╔══════════════════════════════════════╗`,
       `║  ${quote.name}(${tag}) (${stripPrefix(quote.symbol)})`,
       `╠══════════════════════════════════════╣`,
       ``,
-      `  当前价：  ${quote.price.toFixed(2)}`,
-      `  涨跌：    ${quote.change >= 0 ? '+' : ''}${quote.change.toFixed(2)}  (${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent.toFixed(2)}%)`,
+      `  当前价：  ${price(quote.price)}`,
+      `  涨跌：    ${quote.change >= 0 ? '+' : ''}${price(quote.change)}  (${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent.toFixed(2)}%)`,
     ];
-    if (quote.open !== undefined)  lines.push(`  今开：    ${quote.open.toFixed(2)}`);
-    if (quote.high !== undefined)  lines.push(`  最高：    ${quote.high.toFixed(2)}`);
-    if (quote.low !== undefined)   lines.push(`  最低：    ${quote.low.toFixed(2)}`);
+    if (quote.open !== undefined) lines.push(`  今开：    ${price(quote.open)}`);
+    if (quote.high !== undefined) lines.push(`  最高：    ${price(quote.high)}`);
+    if (quote.low !== undefined) lines.push(`  最低：    ${price(quote.low)}`);
     const amplitude = calculateAmplitude(quote);
     if (amplitude !== undefined) lines.push(`  振幅：    ${amplitude.toFixed(2)}%`);
     if (quote.pe !== undefined) lines.push(`  PE：      ${quote.pe.toFixed(2)}`);

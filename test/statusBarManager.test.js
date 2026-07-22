@@ -139,3 +139,50 @@ test('display format supports currency placeholder for China and Hong Kong stock
     vscode.window.createStatusBarItem = originalCreateStatusBarItem;
   }
 });
+
+test('displays exchange-traded fund prices with three decimal places', () => {
+  const config = createConfig({
+    displayFormat: '${name} ${changePercent} (${currency}${price}, ${change})',
+    statusBarAlignment: 'center',
+    colorUp: '#ff0000',
+    colorDown: '#00ff00',
+    colorFlat: '#cccccc',
+    colorClosed: '#777777',
+  });
+  const originalGetConfiguration = vscode.workspace.getConfiguration;
+  const originalCreateStatusBarItem = vscode.window.createStatusBarItem;
+  const items = [];
+
+  vscode.workspace.getConfiguration = () => config;
+  vscode.window.createStatusBarItem = () => {
+    const item = { show() {}, dispose() {} };
+    items.push(item);
+    return item;
+  };
+
+  try {
+    const manager = new StatusBarManager();
+    manager.reload(['sh513120']);
+    manager.updateQuotes([{
+      symbol: 'sh513120',
+      name: '港股创新药ETF',
+      price: 1.234,
+      change: -0.002,
+      changePercent: -0.16,
+      previousClose: 1.236,
+      open: 1.236,
+      high: 1.240,
+      low: 1.230,
+    }]);
+
+    assert.equal(items[0].text, '港股创新药ETF(A) -0.16% (¥1.234, -0.002)');
+    assert.match(items[0].tooltip.value, /当前价：1\.234/);
+    assert.match(items[0].tooltip.value, /涨跌：-0\.002/);
+    assert.match(items[0].tooltip.value, /今开：1\.236/);
+    assert.match(items[0].tooltip.value, /最高：1\.240/);
+    assert.match(items[0].tooltip.value, /最低：1\.230/);
+  } finally {
+    vscode.workspace.getConfiguration = originalGetConfiguration;
+    vscode.window.createStatusBarItem = originalCreateStatusBarItem;
+  }
+});

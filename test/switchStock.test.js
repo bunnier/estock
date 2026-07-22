@@ -416,3 +416,99 @@ test('showDetail lets users pick stocks from the full watch list', async () => {
     vscode.window.createOutputChannel = originalCreateOutputChannel;
   }
 });
+
+test('switchStock displays exchange-traded fund prices with three decimal places', async () => {
+  const config = createConfig({
+    watchList: ['513120', '601318'],
+    displayList: ['601318'],
+    maxDisplay: 1,
+  });
+  const originalGetConfiguration = vscode.workspace.getConfiguration;
+  const originalShowQuickPick = vscode.window.showQuickPick;
+  let etfItem;
+
+  vscode.workspace.getConfiguration = () => config;
+  vscode.window.showQuickPick = async (items) => {
+    etfItem = items.find(item => item.symbol === 'sh513120');
+    return etfItem;
+  };
+
+  try {
+    const service = new StockService();
+    service.statusBar = {
+      getLastQuote: (symbol) => symbol === 'sh513120' ? {
+        symbol,
+        name: '港股创新药ETF',
+        price: 1.234,
+        change: -0.002,
+        changePercent: -0.16,
+      } : undefined,
+    };
+
+    await service.switchStock(0);
+
+    assert.match(etfItem.description, /1\.234/);
+    assert.deepEqual(config.values.displayList, ['sh513120']);
+  } finally {
+    vscode.workspace.getConfiguration = originalGetConfiguration;
+    vscode.window.showQuickPick = originalShowQuickPick;
+  }
+});
+
+test('showDetail displays exchange-traded fund prices with three decimal places', async () => {
+  const config = createConfig({ watchList: ['513120'], displayList: [], maxDisplay: 1 });
+  const originalGetConfiguration = vscode.workspace.getConfiguration;
+  const originalShowQuickPick = vscode.window.showQuickPick;
+  const originalCreateOutputChannel = vscode.window.createOutputChannel;
+  const cache = new Map();
+  const output = [];
+  let detailItem;
+
+  vscode.workspace.getConfiguration = () => config;
+  vscode.window.showQuickPick = async (items) => {
+    detailItem = items[0];
+    return detailItem;
+  };
+  vscode.window.createOutputChannel = () => ({
+    clear() {},
+    appendLine(value) { output.push(value); },
+    show() {},
+  });
+
+  try {
+    const service = new StockService();
+    service.provider = {
+      name: 'test',
+      fetchQuotes: async () => [{
+        symbol: 'sh513120',
+        name: '港股创新药ETF',
+        price: 1.234,
+        change: -0.002,
+        changePercent: -0.16,
+        previousClose: 1.236,
+        open: 1.236,
+        high: 1.240,
+        low: 1.230,
+      }],
+    };
+    service.statusBar = {
+      updateQuotes: (quotes) => {
+        for (const quote of quotes) cache.set(quote.symbol, quote);
+      },
+      getLastQuote: (symbol) => cache.get(symbol),
+    };
+
+    await service.showDetail();
+
+    assert.match(detailItem.description, /1\.234/);
+    assert.match(output[0], /当前价：\s+1\.234/);
+    assert.match(output[0], /涨跌：\s+-0\.002/);
+    assert.match(output[0], /今开：\s+1\.236/);
+    assert.match(output[0], /最高：\s+1\.240/);
+    assert.match(output[0], /最低：\s+1\.230/);
+  } finally {
+    vscode.workspace.getConfiguration = originalGetConfiguration;
+    vscode.window.showQuickPick = originalShowQuickPick;
+    vscode.window.createOutputChannel = originalCreateOutputChannel;
+  }
+});

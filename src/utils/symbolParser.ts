@@ -49,6 +49,18 @@ export function normalizeSymbol(symbol: string): string {
   return s;
 }
 
+/** 判断是否为沪深场内基金。 */
+export function isExchangeTradedFund(symbol: string): boolean {
+  const normalized = normalizeSymbol(symbol);
+  return /^sh5\d{5}$/.test(normalized)
+    || /^sz(?:15|16|18)\d{4}$/.test(normalized);
+}
+
+/** 按证券品种格式化价格。 */
+export function formatPrice(symbol: string, value: number): string {
+  return value.toFixed(isExchangeTradedFund(symbol) ? 3 : 2);
+}
+
 /** 批量标准化 */
 export function normalizeSymbols(symbols: string[]): string[] {
   return symbols.map(normalizeSymbol);
