@@ -11,7 +11,8 @@ import { calculateAmplitude, DataProvider, Quote } from './providers/baseProvide
 import { SmartProvider } from './providers/smartProvider';
 import { SinaStockSearchProvider, StockSearchResult } from './providers/stockSearchProvider';
 import { StatusBarManager } from './statusBarManager';
-import { formatAmount, formatMarketCap, formatPrice, normalizeSymbols, stripPrefix, getMarketTag, nameWithMarket, toXueqiuUrl } from './utils/symbolParser';
+import { formatAmount, formatMarketCap, formatPrice, normalizeSymbols, resolveIndexAlias, stripPrefix, getMarketTag, nameWithMarket, toXueqiuUrl } from './utils/symbolParser';
+import { formatFundNav, hasFundNav } from './utils/fundInfo';
 import { HolidayCalendar } from './utils/holidayCalendar';
 import { getMarketStatusForSymbol } from './utils/marketTime';
 
@@ -41,6 +42,13 @@ function isAvailableQuote(quote: Quote | undefined): quote is Quote {
   return quote !== undefined && Number.isFinite(quote.price) && quote.price > 0;
 }
 
+/** 判断输入是否可以直接作为代码添加（含港股指数代码与常见指数别名）。 */
+function isDirectSymbolInput(value: string): boolean {
+  return /^\d{5,6}$/.test(value)
+    || /^(sh|sz|hk)[0-9a-z]+$/i.test(value)
+    || resolveIndexAlias(value) !== undefined;
+}
+
 /** 将股票详情格式化为纯文本表格。 */
 function formatDetailTable(quotes: Quote[]): string {
   const sortedQuotes = [...quotes].sort((left, right) => {
@@ -66,6 +74,16 @@ function formatDetailTable(quotes: Quote[]): string {
       title: '涨跌幅',
       value: quote => `${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent.toFixed(2)}%`,
     },
+  ];
+  // 股票池里存在基金时，才插入净值列，避免纯股票列表出现整列的占位符。
+  if (sortedQuotes.some(hasFundNav)) {
+    const insertAt = columns.findIndex(column => column.title === '涨跌幅') + 1;
+    columns.splice(insertAt, 0, {
+      title: '基金净值',
+      value: quote => formatFundNav(quote) ?? '--',
+    });
+  }
+  columns.push(
     { title: '今开', value: quote => optionalPrice(quote, quote.open) },
     { title: '最高', value: quote => optionalPrice(quote, quote.high) },
     { title: '最低', value: quote => optionalPrice(quote, quote.low) },
@@ -81,7 +99,7 @@ function formatDetailTable(quotes: Quote[]): string {
       value: quote => quote.time || '--',
     },
     { title: '雪球详情', value: quote => toXueqiuUrl(quote.symbol) },
-  ];
+  );
   const rows = sortedQuotes.map(quote => columns.map(column => column.value(quote)));
   const widths = columns.map((column, index) => {
     return Math.max(displayWidth(column.title), ...rows.map(row => displayWidth(row[index])));
@@ -318,7 +336,7 @@ export class StockService {
     const keyword = input.trim();
     if (!keyword) return;
 
-    if (/^\d{5,6}$/.test(keyword) || /^(sh|sz|hk)\d+$/i.test(keyword)) {
+    if (isDirectSymbolInput(keyword)) {
       await this.addStock(keyword);
       return;
     }
@@ -347,7 +365,7 @@ export class StockService {
     const pick = await vscode.window.showQuickPick(
       results.map(result => ({
         ...stockQuickPickItem(result.symbol, result.name),
-        detail: result.market === 'A' ? 'A股' : '港股',
+        detail: result.isIndex ? '港股指数' : (result.market === 'A' ? 'A股' : '港股'),
         symbol: result.symbol,
         code: result.code,
       })),
@@ -508,6 +526,8 @@ export class StockService {
       `  当前价：  ${price(quote.price)}`,
       `  涨跌：    ${quote.change >= 0 ? '+' : ''}${price(quote.change)}  (${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent.toFixed(2)}%)`,
     ];
+    const fundNav = formatFundNav(quote);
+    if (fundNav !== undefined) lines.push(`  基金净值：${fundNav}`);
     if (quote.open !== undefined) lines.push(`  今开：    ${price(quote.open)}`);
     if (quote.high !== undefined) lines.push(`  最高：    ${price(quote.high)}`);
     if (quote.low !== undefined) lines.push(`  最低：    ${price(quote.low)}`);

@@ -1,16 +1,18 @@
 /**
  * 腾讯财经数据 Provider
- * A股 + 港股免费接口，无需 API Key
- * API: https://qt.gtimg.cn/q=sh600519,hk00700
+ * A股 + 港股 + 港股指数免费接口，无需 API Key
+ * API: https://qt.gtimg.cn/q=sh600519,hk00700,hkHSI
  * 返回编码：GBK
  *
- * 返回格式（~分隔，A股/港股字段索引一致）：
+ * 返回格式（~分隔，A股/港股字段索引基本一致）：
  *   v_sh600519="1~贵州茅台~600519~当前~昨收~今开~成交量~外盘~内盘~买一价~...";
  *
  * 统一字段索引:
  *   0:市场代码 1:名称 2:代码 3:当前价 4:昨收 5:今开
  *   6:成交量 7:外盘 8:内盘
  *   30:时间 31:涨跌额 32:涨跌幅% 33:最高 34:最低
+ *   61:证券类型（A股） 63:证券类型（港股），ETF/LOF/GP-A/GP/GP-FUND/ZS
+ *   78:基金参考净值（IOPV） 81:基金单位净值
  */
 
 import { DataProvider, Quote } from './baseProvider';
@@ -54,6 +56,13 @@ export class TencentProvider extends DataProvider {
     const fields = m[1].split('~');
     if (fields.length < 10) return this.emptyQuote(symbol);
 
+    const isHK = symbol.toLowerCase().startsWith('hk');
+    // 证券类型：A 股在 61 位（ETF/LOF/GP-A/ZS），港股在 63 位（GP/GP-FUND/ZS）。
+    const securityType = fields[isHK ? 63 : 61] || '';
+    const isIndex = securityType === 'ZS';
+    const isFund = /ETF|LOF|FUND/i.test(securityType);
+    const nav = this.parseFundNav(isHK, isFund, fields);
+
     const name = fields[1] || symbol;
     const rawCurrent = parseFloat(fields[3]) || 0;
     const rawYesterday = parseFloat(fields[4]) || rawCurrent;
@@ -80,7 +89,10 @@ export class TencentProvider extends DataProvider {
 
     const high = fields.length > 33 ? parseFloat(fields[33]) || 0 : 0;
     const low = fields.length > 34 ? parseFloat(fields[34]) || 0 : 0;
-    const valuation = this.parseValuationMetrics(symbol, fields);
+    // 指数的市值、成交、估值字段口径与个股不同，统一不展示，避免出现无意义数值。
+    const valuation: { pe?: number; pb?: number; dividendYield?: number } = isIndex
+      ? {}
+      : this.parseValuationMetrics(symbol, fields);
     const turnover = this.parseOptionalNumber(fields[37]);
     const marketCapInHundredMillions = this.parseOptionalNumber(fields[45]);
 
@@ -90,20 +102,38 @@ export class TencentProvider extends DataProvider {
       open: open || undefined,
       high: high || undefined,
       low: low || undefined,
-      volume: volume || undefined,
+      volume: isIndex ? undefined : volume || undefined,
       // 腾讯 A 股成交额以万元计，港股以港元计。
-      turnover: turnover !== undefined && turnover >= 0
-        ? turnover * (symbol.toLowerCase().startsWith('hk') ? 1 : 10_000)
+      turnover: !isIndex && turnover !== undefined && turnover >= 0
+        ? turnover * (isHK ? 1 : 10_000)
         : undefined,
       // 腾讯总市值字段的单位为亿，统一换算为交易货币的元。
-      marketCap: marketCapInHundredMillions !== undefined && marketCapInHundredMillions > 0
+      marketCap: !isIndex && marketCapInHundredMillions !== undefined && marketCapInHundredMillions > 0
         ? marketCapInHundredMillions * 100_000_000
         : undefined,
       pe: valuation.pe,
       pb: valuation.pb,
       dividendYield: valuation.dividendYield,
+      nav,
+      isFund: isFund || undefined,
+      isIndex: isIndex || undefined,
       time: time || undefined,
     };
+  }
+
+  /**
+   * 解析基金净值。
+   * 78 位为盘中参考净值（IOPV），81 位为最新单位净值，优先使用参考净值以计算盘中溢价率。
+   * 港股基金接口不提供净值字段。
+   */
+  private parseFundNav(isHK: boolean, isFund: boolean, fields: string[]): number | undefined {
+    if (!isFund || isHK) return undefined;
+
+    const referenceNav = this.parseOptionalNumber(fields[78]);
+    if (referenceNav !== undefined && referenceNav > 0) return referenceNav;
+
+    const publishedNav = this.parseOptionalNumber(fields[81]);
+    return publishedNav !== undefined && publishedNav > 0 ? publishedNav : undefined;
   }
 
   private toQuerySymbol(symbol: string): string {
@@ -140,9 +170,12 @@ export class TencentProvider extends DataProvider {
 
   private parseValuationMetrics(symbol: string, fields: string[]): { pe?: number; pb?: number; dividendYield?: number } {
     const isHK = symbol.toLowerCase().startsWith('hk');
+    // 基金等品种会把估值字段填成 0，按缺失处理，避免悬浮详情出现 PE：0.00 / PB：0.00。
+    const pe = this.parseOptionalNumber(fields[isHK ? 57 : 39]);
+    const pb = this.parseOptionalNumber(fields[isHK ? 58 : 46]);
     return {
-      pe: this.parseOptionalNumber(fields[isHK ? 57 : 39]),
-      pb: this.parseOptionalNumber(fields[isHK ? 58 : 46]),
+      pe: pe !== undefined && pe > 0 ? pe : undefined,
+      pb: pb !== undefined && pb > 0 ? pb : undefined,
       dividendYield: this.parseOptionalNumber(fields[isHK ? 47 : 64]),
     };
   }

@@ -1,5 +1,5 @@
 /**
- * 统一行情提供器：A股平时用新浪，A股集合竞价用腾讯，港股用腾讯接口。
+ * 统一行情提供器：A股平时用新浪，A股集合竞价用腾讯，港股与港股指数用腾讯接口。
  * 这是免费 API 的实用组合。
  */
 
@@ -21,75 +21,79 @@ export class SmartProvider extends DataProvider {
   async fetchQuotes(symbols: string[]): Promise<Quote[]> {
     if (symbols.length === 0) return [];
 
+    const isHK = (symbol: string): boolean => symbol.toLowerCase().startsWith('hk');
     const useTencentForAStocks = this.isAStockOpeningAuction(new Date());
-    const sinaAStocks = useTencentForAStocks
-      ? []
-      : symbols.filter(s => !s.toLowerCase().startsWith('hk'));
-    const tencentAStocks = useTencentForAStocks
-      ? symbols.filter(s => !s.toLowerCase().startsWith('hk'))
-      : sinaAStocks;
-    const hkStocks = symbols.filter(s => s.toLowerCase().startsWith('hk'));
-    const tencentStocks = [...tencentAStocks, ...hkStocks];
+    const chinaSymbols = symbols.filter(symbol => !isHK(symbol));
+    const hkSymbols = symbols.filter(isHK);
+    const sinaSymbols = useTencentForAStocks ? [] : chinaSymbols;
+    const tencentSymbols = [...chinaSymbols, ...hkSymbols];
 
     // 并行请求
     const tasks: Promise<Quote[]>[] = [];
-    if (sinaAStocks.length > 0) tasks.push(this.sina.fetchQuotes(sinaAStocks));
-    if (tencentStocks.length > 0) tasks.push(this.tencent.fetchQuotes(tencentStocks));
+    if (sinaSymbols.length > 0) tasks.push(this.sina.fetchQuotes(sinaSymbols));
+    if (tencentSymbols.length > 0) tasks.push(this.tencent.fetchQuotes(tencentSymbols));
 
-    const results = await Promise.all(tasks);
+    const batches = await Promise.all(tasks);
 
-    // 合并到 Map
+    // 合并到 Map：新浪负责 A 股盘中价格，腾讯补充市值、估值与基金净值。
     const quoteMap = new Map<string, Quote>();
-    const valuationMap = new Map<string, Pick<Quote, 'pe' | 'pb' | 'dividendYield' | 'marketCap'>>();
-    for (const quotes of results) {
-      for (const q of quotes) {
-        if (q.symbol.toLowerCase().startsWith('hk')) {
-          q.delayed = true;
-        } else if (!useTencentForAStocks && (q.turnover !== undefined || q.marketCap !== undefined || q.pe !== undefined || q.pb !== undefined || q.dividendYield !== undefined)) {
-          valuationMap.set(q.symbol, {
-            marketCap: q.marketCap,
-            pe: q.pe,
-            pb: q.pb,
-            dividendYield: q.dividendYield,
-          });
-          const existing = quoteMap.get(q.symbol);
-          if (existing) {
-            quoteMap.set(q.symbol, this.mergeValuationMetrics(existing, q));
-          } else {
-            quoteMap.set(q.symbol, q);
-          }
+    for (const quotes of batches) {
+      for (const quote of quotes) {
+        if (isHK(quote.symbol)) {
+          quote.delayed = true;
+          quoteMap.set(quote.symbol, quote);
           continue;
         }
-        quoteMap.set(q.symbol, q);
+
+        const existing = quoteMap.get(quote.symbol);
+        if (!existing) {
+          quoteMap.set(quote.symbol, quote);
+          continue;
+        }
+        if (this.hasSupplementalMetrics(quote)) {
+          quoteMap.set(quote.symbol, this.mergeSupplementalMetrics(existing, quote));
+        }
       }
     }
 
     // 按原始顺序返回
     return symbols.map(s => {
       const quote = quoteMap.get(s);
-      if (quote) {
-        const valuation = valuationMap.get(s);
-        return valuation ? { ...quote, ...valuation } : quote;
-      }
+      if (quote) return quote;
       return {
         symbol: s,
         name: s,
         price: 0,
         change: 0,
         changePercent: 0,
-        delayed: s.toLowerCase().startsWith('hk'),
+        delayed: isHK(s),
       };
     });
   }
 
-  private mergeValuationMetrics(base: Quote, valuation: Quote): Quote {
+  /** 判断行情是否携带可补充到主行情上的字段。 */
+  private hasSupplementalMetrics(quote: Quote): boolean {
+    return quote.turnover !== undefined
+      || quote.marketCap !== undefined
+      || quote.pe !== undefined
+      || quote.pb !== undefined
+      || quote.dividendYield !== undefined
+      || quote.nav !== undefined
+      || quote.isFund !== undefined
+      || quote.isIndex !== undefined;
+  }
+
+  private mergeSupplementalMetrics(base: Quote, supplemental: Quote): Quote {
     return {
       ...base,
-      turnover: base.turnover ?? valuation.turnover,
-      marketCap: valuation.marketCap,
-      pe: valuation.pe,
-      pb: valuation.pb,
-      dividendYield: valuation.dividendYield,
+      turnover: base.turnover ?? supplemental.turnover,
+      marketCap: supplemental.marketCap,
+      pe: supplemental.pe,
+      pb: supplemental.pb,
+      dividendYield: supplemental.dividendYield,
+      nav: supplemental.nav ?? base.nav,
+      isFund: supplemental.isFund ?? base.isFund,
+      isIndex: supplemental.isIndex ?? base.isIndex,
     };
   }
 

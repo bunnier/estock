@@ -2,10 +2,26 @@
  * 股票代码标准化工具
  * A股6位 → 补 sh/sz 前缀
  * 港股5位 → 补 hk 前缀
+ * 港股指数 → 保留字母代码，如 hkHSI、hkHSTECH
  */
 
 const A_STOCK_REGEX = /^\d{6}$/;
 const HK_STOCK_REGEX = /^\d{5}$/;
+const PREFIXED_SYMBOL_REGEX = /^(sh|sz|hk)([0-9a-z]+)$/i;
+
+/**
+ * 常见指数缩写 → 标准化代码。
+ * 键统一使用小写并去掉空格，便于忽略大小写和空格匹配。
+ * 中文指数名称仍走行情搜索，方便在指数与同名 ETF 之间选择。
+ */
+const INDEX_ALIASES: Record<string, string> = {
+  'hsi': 'hkHSI',
+  'hangseng': 'hkHSI',
+  'hangsengindex': 'hkHSI',
+  'hstech': 'hkHSTECH',
+  'hangsengtech': 'hkHSTECH',
+  'hscei': 'hkHSCEI',
+};
 
 /** 判断是否为A股代码 */
 export function isAStock(symbol: string): boolean {
@@ -17,19 +33,34 @@ export function isHKStock(symbol: string): boolean {
   return HK_STOCK_REGEX.test(symbol.trim());
 }
 
+/** 解析指数缩写（如 HSI、HSTECH），未命中返回 undefined。 */
+export function resolveIndexAlias(input: string): string | undefined {
+  const key = input.trim().toLowerCase().replace(/\s+/g, '');
+  return INDEX_ALIASES[key];
+}
+
 /**
  * 标准化股票代码，补上市场前缀
  * "600519" → "sh600519"
  * "000001" → "sz000001"
  * "00700"  → "hk00700"
+ * "hkhsi"  → "hkHSI"（港股指数保留大写字母代码）
  * "sh600519" → "sh600519" (已有前缀，原样返回)
  */
 export function normalizeSymbol(symbol: string): string {
-  const s = symbol.trim().toLowerCase();
+  const raw = symbol.trim();
+  if (!raw) return '';
 
-  // 已有前缀 → 原样返回（小写）
-  if (/^(sh|sz|hk)\d+/.test(s)) {
-    return s;
+  const alias = resolveIndexAlias(raw);
+  if (alias) return alias;
+
+  const s = raw.toLowerCase();
+
+  // 已有前缀 → 保留市场前缀，字母代码统一大写（上游接口区分大小写，如 hkHSI）
+  const prefixed = s.match(PREFIXED_SYMBOL_REGEX);
+  if (prefixed) {
+    const [, market, code] = prefixed;
+    return `${market}${/^\d+$/.test(code) ? code : code.toUpperCase()}`;
   }
 
   if (isHKStock(s)) {
@@ -59,6 +90,11 @@ export function isExchangeTradedFund(symbol: string): boolean {
 /** 按证券品种格式化价格。 */
 export function formatPrice(symbol: string, value: number): string {
   return value.toFixed(isExchangeTradedFund(symbol) ? 3 : 2);
+}
+
+/** 基金净值统一保留 4 位小数。 */
+export function formatNavValue(value: number): string {
+  return value.toFixed(4);
 }
 
 /** 批量标准化 */

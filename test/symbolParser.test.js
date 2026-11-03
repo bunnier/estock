@@ -5,6 +5,7 @@ const {
   formatPrice,
   formatMarketCap,
   formatAmount,
+  formatNavValue,
   isExchangeTradedFund,
   normalizeSymbol,
   toXueqiuUrl,
@@ -14,6 +15,16 @@ test('normalizes Shenzhen ETF and fund codes to sz prefix', () => {
   assert.equal(normalizeSymbol('159915'), 'sz159915');
   assert.equal(normalizeSymbol('161725'), 'sz161725');
   assert.equal(normalizeSymbol('180101'), 'sz180101');
+});
+
+test('normalizes Hong Kong index codes and index aliases', () => {
+  assert.equal(normalizeSymbol('hkHSI'), 'hkHSI');
+  assert.equal(normalizeSymbol('hkhsi'), 'hkHSI');
+  assert.equal(normalizeSymbol('HKHSTECH'), 'hkHSTECH');
+  assert.equal(normalizeSymbol('HSI'), 'hkHSI');
+  assert.equal(normalizeSymbol('hstech'), 'hkHSTECH');
+  assert.equal(normalizeSymbol('hscei'), 'hkHSCEI');
+  assert.equal(normalizeSymbol('SH600519'), 'sh600519');
 });
 
 test('keeps Shanghai ETF and existing stock routing intact', () => {
@@ -48,6 +59,17 @@ test('builds Xueqiu URLs for Shanghai and Shenzhen stocks', () => {
 
 test('builds Xueqiu URLs for Hong Kong stocks without a market prefix', () => {
   assert.equal(toXueqiuUrl('hk00772'), 'https://xueqiu.com/S/00772');
+});
+
+test('builds Xueqiu URLs for Hong Kong indices', () => {
+  assert.equal(toXueqiuUrl('hkHSI'), 'https://xueqiu.com/S/HSI');
+  assert.equal(toXueqiuUrl('hkhstech'), 'https://xueqiu.com/S/HSTECH');
+});
+
+test('formats fund net value with four decimal places', () => {
+  assert.equal(formatNavValue(1.1248), '1.1248');
+  assert.equal(formatNavValue(0.5964), '0.5964');
+  assert.equal(formatNavValue(4), '4.0000');
 });
 
 test('formats market capitalization with currency and scaled units', () => {

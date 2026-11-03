@@ -5,6 +5,8 @@ export interface StockSearchResult {
   code: string;
   name: string;
   market: 'A' | 'H';
+  /** 是否为指数（含港股指数）。 */
+  isIndex?: boolean;
 }
 
 const SINA_QUERY_TYPES = '11,12,13,14,15,31,32,33,41,42';
@@ -38,6 +40,15 @@ export function parseSinaSuggestResponse(text: string): StockSearchResult[] {
         code,
         name,
         market: 'H',
+      };
+    } else if (type === '33' && /^[a-z]+$/i.test(code)) {
+      // 港股指数使用字母代码（hsi/hstech/hscei），行情接口要求大写形式。
+      result = {
+        symbol: `hk${code.toUpperCase()}`,
+        code: code.toUpperCase(),
+        name,
+        market: 'H',
+        isIndex: true,
       };
     }
 

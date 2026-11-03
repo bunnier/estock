@@ -2,7 +2,7 @@
   "name": "estock-watcher",
   "displayName": "码盯·撸得金",
   "description": "边码字，边盯盘，撸得真金。",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "icon": "icon.png",
   "publisher": "estock",
   "author": {
@@ -31,6 +31,9 @@
     "摸鱼",
     "A股",
     "港股",
+    "指数",
+    "ETF",
+    "净值",
     "市场"
   ],
   "engines": {
@@ -54,7 +57,7 @@
         "estock.watchList": {
           "type": "array",
           "default": ["sh601318", "hk00700", "sz002027", "sh601899"],
-          "description": "股票池：所有关注的股票代码（推荐使用 sh/sz/hk 市场前缀，兼容旧版 A股6位、港股5位代码）",
+          "description": "股票池：所有关注的股票代码（推荐使用 sh/sz/hk 市场前缀，兼容旧版 A股6位、港股5位代码，支持港股指数如 hkHSI）",
           "items": { "type": "string" },
           "order": 0
         },
