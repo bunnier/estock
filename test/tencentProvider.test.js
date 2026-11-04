@@ -308,3 +308,90 @@ test('preserves zero turnover and rejects unavailable Tencent turnover', () => {
   fields[37] = '-1';
   assert.equal(provider.parseLine('sh600519', buildTencentLine('sh600519', fields)).turnover, undefined);
 });
+
+test('parses the reference net value of exchange traded funds', () => {
+  const provider = new TencentProvider();
+  const fields = Array.from({ length: 88 }, () => '');
+  fields[1] = '港股创新药ETF广发';
+  fields[2] = '513120';
+  fields[3] = '1.113';
+  fields[4] = '1.155';
+  fields[61] = 'ETF';
+  fields[78] = '1.1248';
+  fields[81] = '1.1333';
+
+  const quote = provider.parseLine('sh513120', buildTencentLine('sh513120', fields));
+
+  assert.equal(quote.nav, 1.1248);
+  assert.equal(quote.isFund, true);
+  assert.equal(quote.isIndex, undefined);
+});
+
+test('falls back to the latest unit net value when the reference net value is missing', () => {
+  const provider = new TencentProvider();
+  const fields = Array.from({ length: 88 }, () => '');
+  fields[1] = '白酒基金LOF';
+  fields[3] = '0.591';
+  fields[4] = '0.582';
+  fields[61] = 'LOF';
+  fields[78] = '';
+  fields[81] = '0.5964';
+
+  assert.equal(provider.parseLine('sz161725', buildTencentLine('sz161725', fields)).nav, 0.5964);
+});
+
+test('keeps net value empty for stocks', () => {
+  const provider = new TencentProvider();
+  const fields = Array.from({ length: 88 }, () => '');
+  fields[1] = '贵州茅台';
+  fields[3] = '1480.00';
+  fields[4] = '1439.10';
+  fields[61] = 'GP-A';
+  fields[78] = '1.1248';
+  fields[81] = '1.1333';
+
+  assert.equal(provider.parseLine('sh600519', buildTencentLine('sh600519', fields)).nav, undefined);
+});
+
+test('marks index quotes and omits stock-only metrics', () => {
+  const provider = new TencentProvider();
+  const hkFields = Array.from({ length: 78 }, () => '');
+  hkFields[1] = '恒生指数';
+  hkFields[2] = 'HSI';
+  hkFields[3] = '23525.970';
+  hkFields[4] = '23393.320';
+  hkFields[5] = '23469.640';
+  hkFields[6] = '23640437.4447';
+  hkFields[30] = '2026/11/03 18:31:07';
+  hkFields[31] = '132.650';
+  hkFields[32] = '0.57';
+  hkFields[33] = '23549.310';
+  hkFields[34] = '23347.030';
+  hkFields[37] = '23640437.445';
+  hkFields[45] = '0';
+  hkFields[57] = '0.00';
+  hkFields[58] = '0.00';
+  hkFields[63] = 'ZS';
+
+  const hkIndex = provider.parseLine('hkHSI', buildTencentLine('hkHSI', hkFields));
+  assert.equal(hkIndex.name, '恒生指数');
+  assert.equal(hkIndex.price, 23525.97);
+  assert.equal(hkIndex.isIndex, true);
+  assert.equal(hkIndex.isFund, undefined);
+  assert.equal(hkIndex.volume, undefined);
+  assert.equal(hkIndex.turnover, undefined);
+  assert.equal(hkIndex.marketCap, undefined);
+  assert.equal(hkIndex.pe, undefined);
+
+  const chinaFields = Array.from({ length: 88 }, () => '');
+  chinaFields[1] = '上证指数';
+  chinaFields[3] = '3608.10';
+  chinaFields[4] = '3638.03';
+  chinaFields[61] = 'ZS';
+  chinaFields[39] = '16.41';
+  chinaFields[45] = '630601.17';
+  const chinaIndex = provider.parseLine('sh000001', buildTencentLine('sh000001', chinaFields));
+  assert.equal(chinaIndex.isIndex, true);
+  assert.equal(chinaIndex.pe, undefined);
+  assert.equal(chinaIndex.marketCap, undefined);
+});

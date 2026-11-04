@@ -192,6 +192,102 @@ test('displays exchange-traded fund prices with three decimal places', () => {
   }
 });
 
+test('shows fund net value with premium rate in the hover detail', () => {
+  const config = createConfig({
+    displayFormat: '${name} ${changePercent} (${currency}${price})',
+    statusBarAlignment: 'center',
+    colorUp: '#ff0000',
+    colorDown: '#00ff00',
+    colorFlat: '#cccccc',
+    colorClosed: '#777777',
+  });
+  const originalGetConfiguration = vscode.workspace.getConfiguration;
+  const originalCreateStatusBarItem = vscode.window.createStatusBarItem;
+  const items = [];
+
+  vscode.workspace.getConfiguration = () => config;
+  vscode.window.createStatusBarItem = () => {
+    const item = { show() {}, dispose() {} };
+    items.push(item);
+    return item;
+  };
+
+  try {
+    const manager = new StatusBarManager();
+    manager.reload(['sh513120']);
+    manager.updateQuotes([{
+      symbol: 'sh513120',
+      name: '港股创新药ETF广发',
+      price: 1.113,
+      change: -0.042,
+      changePercent: -3.64,
+      previousClose: 1.155,
+      open: 1.149,
+      high: 1.152,
+      low: 1.111,
+      nav: 1.1248,
+      isFund: true,
+      time: '2026-11-03 16:14:49',
+    }]);
+
+    assert.equal(items[0].text, '港股创新药ETF广发(A) -3.64% (¥1.113)');
+    assert.match(items[0].tooltip.value, /基金净值：1\.1248（溢价率：-1\.05%）/);
+    assert.match(items[0].tooltip.value, /今开：1\.149/);
+  } finally {
+    vscode.workspace.getConfiguration = originalGetConfiguration;
+    vscode.window.createStatusBarItem = originalCreateStatusBarItem;
+  }
+});
+
+test('renders index quotes without a currency symbol or stock-only metrics', () => {
+  const config = createConfig({
+    displayFormat: '${name} ${changePercent} (${currency}${price})',
+    statusBarAlignment: 'center',
+    colorUp: '#ff0000',
+    colorDown: '#00ff00',
+    colorFlat: '#cccccc',
+    colorClosed: '#777777',
+  });
+  const originalGetConfiguration = vscode.workspace.getConfiguration;
+  const originalCreateStatusBarItem = vscode.window.createStatusBarItem;
+  const items = [];
+
+  vscode.workspace.getConfiguration = () => config;
+  vscode.window.createStatusBarItem = () => {
+    const item = { show() {}, dispose() {} };
+    items.push(item);
+    return item;
+  };
+
+  try {
+    const manager = new StatusBarManager();
+    manager.reload(['hkHSI']);
+    manager.updateQuotes([{
+      symbol: 'hkHSI',
+      name: '恒生指数',
+      price: 23525.97,
+      change: 132.65,
+      changePercent: 0.57,
+      previousClose: 23393.32,
+      open: 23469.64,
+      high: 23549.31,
+      low: 23347.03,
+      isIndex: true,
+      time: '2026/11/03 18:31:07',
+    }]);
+
+    assert.equal(items[0].text, '恒生指数(H) +0.57% (23525.97)');
+    assert.match(items[0].tooltip.value, /今开：23469\.64/);
+    assert.match(items[0].tooltip.value, /振幅：0\.86%/);
+    assert.match(items[0].tooltip.value, /总市值：--/);
+    assert.doesNotMatch(items[0].tooltip.value, /PE\(TTM\)/);
+    assert.doesNotMatch(items[0].tooltip.value, /基金净值/);
+  } finally {
+    vscode.workspace.getConfiguration = originalGetConfiguration;
+    vscode.window.createStatusBarItem = originalCreateStatusBarItem;
+  }
+});
+
 test('appends an upward movement alert to the stock item and restores it after thirty seconds', () => {
   const config = createConfig({
     displayFormat: '${name} ${changePercent} (${currency}${price})',

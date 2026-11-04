@@ -16,6 +16,7 @@ import {
   formatAmount,
 } from './utils/symbolParser';
 import { PriceMovementAlert, PriceMovementTracker } from './priceMovementTracker';
+import { formatFundNav } from './utils/fundInfo';
 
 const DEFAULT_PRICE_ALERT_WINDOW_SECONDS = 120;
 
@@ -187,13 +188,15 @@ export class StatusBarManager {
 
     const priceStr = quote.price > 0 ? formatPrice(quote.symbol, quote.price) : '---';
     const changeStr = formatPrice(quote.symbol, quote.change);
+    // 指数以点数报价，不带货币符号。
+    const currencyStr = quote.isIndex ? '' : getCurrencySymbol(quote.symbol);
 
     let text = format
       .replace(/\$\{name\}/g, this.formatName(quote))
       .replace(/\$\{price\}/g, priceStr)
       .replace(/\$\{change\}/g, quote.change >= 0 ? `+${changeStr}` : changeStr)
       .replace(/\$\{changePercent\}/g, percentChangeStr)
-      .replace(/\$\{currency\}/g, getCurrencySymbol(quote.symbol))
+      .replace(/\$\{currency\}/g, currencyStr)
       .replace(/\$\{volume\}/g, quote.volume ? String(quote.volume) : '---');
 
     if (isClosed) {
@@ -224,6 +227,8 @@ export class StatusBarManager {
     if (quote.low !== undefined)  lines.push(`最低：${price(quote.low)}`);
     const amplitude = calculateAmplitude(quote);
     if (amplitude !== undefined) lines.push(`振幅：${amplitude.toFixed(2)}%`);
+    const fundNav = formatFundNav(quote);
+    if (fundNav !== undefined) lines.push(`基金净值：${fundNav}`);
     lines.push(`总市值：${formatMarketCap(quote.symbol, quote.marketCap)}`);
     if (quote.pe !== undefined) lines.push(`PE(TTM)：${quote.pe.toFixed(2)}`);
     if (quote.pb !== undefined) lines.push(`PB：${quote.pb.toFixed(2)}`);

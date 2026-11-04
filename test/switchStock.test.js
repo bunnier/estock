@@ -180,6 +180,52 @@ test('addStockByInput preserves the exchange prefix for ambiguous codes', async 
   }
 });
 
+test('addStockByInput adds Hong Kong indices without searching', async () => {
+  const config = createConfig({
+    watchList: [],
+    displayList: [],
+    maxDisplay: 3,
+  });
+
+  const originalGetConfiguration = vscode.workspace.getConfiguration;
+  const originalShowInformationMessage = vscode.window.showInformationMessage;
+  const originalWithProgress = vscode.window.withProgress;
+  const messages = [];
+
+  vscode.workspace.getConfiguration = () => config;
+  vscode.window.showInformationMessage = (message) => {
+    messages.push(message);
+  };
+  vscode.window.withProgress = () => assert.fail('Index codes should not trigger a search.');
+
+  try {
+    const service = new StockService({
+      search: async () => assert.fail('Index codes should not trigger a search.'),
+    });
+    service.provider = {
+      name: 'test',
+      fetchQuotes: async (symbols) => symbols.map(symbol => ({
+        symbol,
+        name: '恒生指数',
+        price: 23525.97,
+        change: 132.65,
+        changePercent: 0.57,
+        isIndex: true,
+      })),
+    };
+
+    await service.addStockByInput('hkHSI');
+    await service.addStockByInput('hstech');
+
+    assert.deepEqual(config.values.watchList, ['hkHSI', 'hkHSTECH']);
+    assert.deepEqual(messages, ['已添加 HSI 到股票池', '已添加 HSTECH 到股票池']);
+  } finally {
+    vscode.workspace.getConfiguration = originalGetConfiguration;
+    vscode.window.showInformationMessage = originalShowInformationMessage;
+    vscode.window.withProgress = originalWithProgress;
+  }
+});
+
 test('refreshOnce keeps closed market display after fetching fresh quotes', async () => {
   const config = createConfig({
     watchList: ['601318'],
@@ -497,6 +543,8 @@ test('showDetail displays exchange-traded fund prices with three decimal places'
         open: 1.236,
         high: 1.240,
         low: 1.230,
+        nav: 1.236,
+        isFund: true,
       }],
     };
     service.statusBar = {
@@ -511,6 +559,7 @@ test('showDetail displays exchange-traded fund prices with three decimal places'
     assert.match(detailItem.description, /1\.234/);
     assert.match(output[0], /当前价：\s+1\.234/);
     assert.match(output[0], /涨跌：\s+-0\.002/);
+    assert.match(output[0], /基金净值：1\.2360（溢价率：-0\.16%）/);
     assert.match(output[0], /今开：\s+1\.236/);
     assert.match(output[0], /最高：\s+1\.240/);
     assert.match(output[0], /最低：\s+1\.230/);
@@ -899,5 +948,68 @@ test('showWatchListDetail prompts when no stock quote is available', async () =>
   } finally {
     vscode.workspace.getConfiguration = originalGetConfiguration;
     vscode.window.showInformationMessage = originalShowInformationMessage;
+  }
+});
+
+test('showWatchListDetail adds a fund net value column only when the watch list contains funds', async () => {
+  const config = createConfig({
+    watchList: ['513120', '601318'],
+    displayList: [],
+    maxDisplay: 1,
+  });
+  const originalGetConfiguration = vscode.workspace.getConfiguration;
+  const originalCreateOutputChannel = vscode.window.createOutputChannel;
+  const cache = new Map();
+  const output = [];
+
+  vscode.workspace.getConfiguration = () => config;
+  vscode.window.createOutputChannel = () => ({
+    clear() {},
+    appendLine(value) { output.push(value); },
+    show() {},
+  });
+
+  try {
+    const service = new StockService();
+    service.provider = {
+      name: 'test',
+      fetchQuotes: async () => [{
+        symbol: 'sh513120',
+        name: '港股创新药ETF广发',
+        price: 1.113,
+        change: -0.042,
+        changePercent: -3.64,
+        nav: 1.1248,
+        isFund: true,
+        time: '2026-11-03 16:14:49',
+      }, {
+        symbol: 'sh601318',
+        name: '中国平安',
+        price: 50,
+        change: 1,
+        changePercent: 2,
+      }],
+    };
+    service.statusBar = {
+      updateQuotes: (quotes) => {
+        for (const quote of quotes) cache.set(quote.symbol, quote);
+      },
+      getLastQuote: (symbol) => cache.get(symbol),
+    };
+
+    await service.showWatchListDetail();
+
+    assert.match(output[0], /涨跌幅\s+\|\s+基金净值\s+\|\s+今开/);
+    assert.match(output[0], /1\.1248（溢价率：-1\.05%）/);
+    assert.match(output[0], /中国平安\(A\).*50\.00/);
+
+    config.values.watchList = ['601318'];
+    const previousLength = output.length;
+    await service.showWatchListDetail();
+    const stockOnly = output.slice(previousLength).join('\n');
+    assert.doesNotMatch(stockOnly, /基金净值/);
+  } finally {
+    vscode.workspace.getConfiguration = originalGetConfiguration;
+    vscode.window.createOutputChannel = originalCreateOutputChannel;
   }
 });

@@ -19,8 +19,18 @@ export interface Quote {
   pe?: number;          // 滚动市盈率，基于最近四个季度（TTM）。
   pb?: number;          // 市净率。
   dividendYield?: number;// 股息率（%）。
+  nav?: number;         // 基金净值：ETF 取盘中参考净值（IOPV），缺失时取最新单位净值。
+  isFund?: boolean;     // 是否为基金（ETF/LOF）。
+  isIndex?: boolean;    // 是否为指数。
   time?: string;       // 更新时间
   delayed?: boolean;    // 是否延迟数据（港股免费 API 有延迟）
+}
+
+/** 计算当前价相对基金净值的溢价率（%）。 */
+export function calculatePremiumRate(quote: Pick<Quote, 'price' | 'nav'>): number | undefined {
+  if (quote.nav === undefined || !Number.isFinite(quote.nav) || quote.nav <= 0) return undefined;
+  if (!Number.isFinite(quote.price) || quote.price <= 0) return undefined;
+  return ((quote.price - quote.nav) / quote.nav) * 100;
 }
 
 /** 计算当日振幅。 */

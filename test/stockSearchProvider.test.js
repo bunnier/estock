@@ -34,3 +34,23 @@ test('filters unsupported suggestion categories', () => {
     },
   ]);
 });
+
+test('parses Hong Kong index suggestions into uppercase market codes', () => {
+  const text = 'var suggestdata="恒生指数,33,hsi,hsi,恒生指数,,恒生指数,99,1,,,;恒生科技ETF,31,03032,03032,恒生科技ETF,,恒生科技ETF,99,1,,,";';
+
+  assert.deepEqual(parseSinaSuggestResponse(text), [
+    {
+      symbol: 'hkHSI',
+      code: 'HSI',
+      name: '恒生指数',
+      market: 'H',
+      isIndex: true,
+    },
+    {
+      symbol: 'hk03032',
+      code: '03032',
+      name: '恒生科技ETF',
+      market: 'H',
+    },
+  ]);
+});

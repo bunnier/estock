@@ -161,3 +161,61 @@ test('preserves Sina turnover and falls back to Tencent turnover when absent', a
     assert.equal(fallback.price, 50);
   });
 });
+
+test('merges Tencent net value into China fund quotes without replacing the Sina price', async () => {
+  await withFakeDate('2026-07-03T01:35:00.000Z', async () => {
+    const provider = new SmartProvider();
+    provider.sina = {
+      fetchQuotes: async (symbols) => symbols.map(symbol => ({
+        symbol,
+        name: '港股创新药ETF广发',
+        price: 1.113,
+        change: -0.042,
+        changePercent: -3.64,
+      })),
+    };
+    provider.tencent = {
+      fetchQuotes: async (symbols) => symbols.map(symbol => ({
+        symbol,
+        name: '港股创新药ETF广发',
+        price: 1.114,
+        change: -0.041,
+        changePercent: -3.55,
+        nav: 1.1248,
+        isFund: true,
+        turnover: 6_805_660_000,
+      })),
+    };
+
+    const [quote] = await provider.fetchQuotes(['sh513120']);
+
+    assert.equal(quote.price, 1.113);
+    assert.equal(quote.changePercent, -3.64);
+    assert.equal(quote.nav, 1.1248);
+    assert.equal(quote.isFund, true);
+    assert.equal(quote.turnover, 6_805_660_000);
+  });
+});
+
+test('marks Hong Kong index quotes as delayed', async () => {
+  await withFakeDate('2026-07-03T01:35:00.000Z', async () => {
+    const provider = new SmartProvider();
+    provider.sina = { fetchQuotes: async () => [] };
+    provider.tencent = {
+      fetchQuotes: async (symbols) => symbols.map(symbol => ({
+        symbol,
+        name: '恒生指数',
+        price: 23525.97,
+        change: 132.65,
+        changePercent: 0.57,
+        isIndex: true,
+      })),
+    };
+
+    const [quote] = await provider.fetchQuotes(['hkHSI']);
+
+    assert.equal(quote.symbol, 'hkHSI');
+    assert.equal(quote.isIndex, true);
+    assert.equal(quote.delayed, true);
+  });
+});
